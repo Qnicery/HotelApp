@@ -125,11 +125,63 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                items(uiState.hotels) { hotel ->
-                    HotelCard(
-                        hotel = hotel,
-                        onClick = { onNavigateToHotelDetails(hotel.id) }
-                    )
+                // Отели или пустое состояние
+                if (uiState.hotels.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Hotel,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = if (uiState.selectedCity != null) {
+                                        "Нет отелей в городе ${uiState.selectedCity}"
+                                    } else {
+                                        "Нет отелей"
+                                    },
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 16.sp
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    items(uiState.hotels) { hotel ->
+                        HotelCard(
+                            hotel = hotel,
+                            onClick = { onNavigateToHotelDetails(hotel.id) }
+                        )
+                    }
+                }
+
+                // Показываем ошибку, если есть
+                uiState.error?.let { error ->
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            )
+                        ) {
+                            Text(
+                                text = error,
+                                modifier = Modifier.padding(16.dp),
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
                 }
             }
         }

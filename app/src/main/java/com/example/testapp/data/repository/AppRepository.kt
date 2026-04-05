@@ -98,111 +98,10 @@ class AppRepository private constructor(private val context: Context) {
         )
     )
 
-    private val cities = listOf(
-        City("Москва", 15),
-        City("Санкт-Петербург", 12),
-        City("Сочи", 8),
-        City("Казань", 6),
-        City("Алтай", 4),
-        City("Домбай", 3),
-        City("Калининград", 5)
-    )
-
-    private val hotelsList = listOf(
-        Hotel(
-            id = 1,
-            name = "Grand Palace Hotel",
-            city = "Москва",
-            type = HotelType.HOTEL,
-            description = "Роскошный 5-звездочный отель в самом центре Москвы, рядом с Красной площадью. Панорамные виды на город, изысканные рестораны и спа-комплекс мирового уровня.",
-            imageUrl = "http://10.0.2.2:8080/uploads/hotels/1/0ac89a80-9196-496a-9ed0-2cf832481526.jpg",
-            rating = 4.8f,
-            reviewsCount = 324,
-            priceFrom = 15000.0,
-            amenities = listOf("Wi-Fi", "Бассейн", "Спа", "Ресторан", "Фитнес-центр", "Парковка", "Консьерж"),
-            gallery = listOf(
-                "https://loremflickr.com/800/600/hotel,lobby?random=101",
-                "https://loremflickr.com/800/600/hotel,room?random=102",
-                "https://loremflickr.com/800/600/hotel,pool?random=103"
-            )
-        ),
-        Hotel(
-            id = 2,
-            name = "Seaside Resort",
-            city = "Сочи",
-            type = HotelType.RESORT,
-            description = "Уютный курортный отель на берегу Черного моря с собственным пляжем. Идеальное место для семейного отдыха и романтического путешествия.",
-            imageUrl = "https://loremflickr.com/800/600/beach,sea?random=2",
-            rating = 4.6f,
-            reviewsCount = 189,
-            priceFrom = 12000.0,
-            amenities = listOf("Wi-Fi", "Пляж", "Бассейн", "Ресторан", "Детская площадка", "Анимация"),
-            gallery = listOf(
-                "https://loremflickr.com/800/600/beach,resort?random=201",
-                "https://loremflickr.com/800/600/pool,hotel?random=202"
-            )
-        ),
-        Hotel(
-            id = 3,
-            name = "Mountain Lodge",
-            city = "Домбай",
-            type = HotelType.GUEST_HOUSE,
-            description = "Альпийское шале с потрясающим видом на горы Кавказа. Лыжные склоны в 5 минутах ходьбы. Уютные камины и традиционное кавказское гостеприимство.",
-            imageUrl = "https://loremflickr.com/800/600/mountain,snow?random=3",
-            rating = 4.7f,
-            reviewsCount = 156,
-            priceFrom = 9500.0,
-            amenities = listOf("Wi-Fi", "Камин", "Лыжная комната", "Ресторан", "Баня", "Трансфер"),
-            gallery = listOf(
-                "https://loremflickr.com/800/600/mountain,cabin?random=301"
-            )
-        ),
-        Hotel(
-            id = 4,
-            name = "City Business Hotel",
-            city = "Санкт-Петербург",
-            type = HotelType.HOTEL,
-            description = "Современный бизнес-отель в деловом центре Санкт-Петербурга. Конференц-залы, быстрый Wi-Fi и удобная транспортная доступность.",
-            imageUrl = "https://loremflickr.com/800/600/city,building?random=4",
-            rating = 4.4f,
-            reviewsCount = 278,
-            priceFrom = 7000.0,
-            amenities = listOf("Wi-Fi", "Бизнес-центр", "Ресторан", "Фитнес-центр", "Парковка"),
-            gallery = listOf(
-                "https://loremflickr.com/800/600/office,building?random=401"
-            )
-        ),
-        Hotel(
-            id = 5,
-            name = "Historic Boutique Hotel",
-            city = "Казань",
-            type = HotelType.HOTEL,
-            description = "Бутик-отель в отреставрированном здании XIX века в историческом центре Казани. Уникальный интерьер и персонализированный сервис.",
-            imageUrl = "https://loremflickr.com/800/600/historic,building?random=5",
-            rating = 4.9f,
-            reviewsCount = 142,
-            priceFrom = 11000.0,
-            amenities = listOf("Wi-Fi", "Ресторан", "Бар", "Консьерж", "Экскурсии"),
-            gallery = listOf(
-                "https://loremflickr.com/800/600/historic,interior?random=501"
-            )
-        ),
-        Hotel(
-            id = 6,
-            name = "Lake View Resort",
-            city = "Алтай",
-            type = HotelType.RESORT,
-            description = "Эко-отель с видом на Телецкое озеро. Полное единение с природой, спа-процедуры на основе местных трав и органическая кухня.",
-            imageUrl = "https://loremflickr.com/800/600/lake,nature?random=6",
-            rating = 4.7f,
-            reviewsCount = 98,
-            priceFrom = 13500.0,
-            amenities = listOf("Wi-Fi", "Спа", "Ресторан", "Эко-тропы", "Велопрокат", "Рыбалка"),
-            gallery = listOf(
-                "https://loremflickr.com/800/600/lake,resort?random=601"
-            )
-        )
-    )
+    // NOTE: Отели и города теперь загружаются с сервера через HotelsRepository
+    // Mock-данные удалены, так как приложение использует реальный API
+    private val hotelsList = listOf<Hotel>()
+    private val cities = listOf<City>()
 
     private val roomsList = mutableListOf(
         // Номера для Grand Palace Hotel
@@ -276,53 +175,9 @@ class AppRepository private constructor(private val context: Context) {
         )
     )
 
-    private val reviewsList = mutableListOf(
-        Review(
-            id = 1,
-            hotelId = 1,
-            userId = 1,
-            userName = "Александр М.",
-            rating = 5f,
-            text = "Превосходный отель! Обслуживание на высшем уровне, номера роскошные, завтрак потрясающий. Обязательно вернёмся!",
-            date = "2024-01-15"
-        ),
-        Review(
-            id = 2,
-            hotelId = 1,
-            userId = 2,
-            userName = "Елена К.",
-            rating = 4f,
-            text = "Очень хороший отель в центре города. Единственный минус - шумно с улицы. В остальном всё отлично.",
-            date = "2024-01-10"
-        ),
-        Review(
-            id = 3,
-            hotelId = 2,
-            userId = 3,
-            userName = "Дмитрий В.",
-            rating = 5f,
-            text = "Отличный курорт для семейного отдыха! Дети в восторге от анимации и бассейна. Пляж чистый, еда вкусная.",
-            date = "2024-01-08"
-        ),
-        Review(
-            id = 4,
-            hotelId = 3,
-            userId = 4,
-            userName = "Ольга С.",
-            rating = 5f,
-            text = "Волшебное место в горах! Виды потрясающие, баня после катания - то что нужно. Хозяева очень гостеприимные.",
-            date = "2024-01-05"
-        ),
-        Review(
-            id = 5,
-            hotelId = 5,
-            userId = 5,
-            userName = "Максим П.",
-            rating = 5f,
-            text = "Уникальный отель с историей. Интерьеры восхитительные, персонал внимательный. Казань теперь люблю ещё больше!",
-            date = "2024-01-03"
-        )
-    )
+    // NOTE: Отзывы теперь загружаются с сервера через ReviewsRepository
+    // Mock-данные удалены, так как приложение использует реальный API
+    private val reviewsList = listOf<Review>()
 
     private val bookingsList = mutableListOf<Booking>()
 
@@ -458,22 +313,8 @@ class AppRepository private constructor(private val context: Context) {
 
     // ==================== Reviews ====================
 
-    fun getReviewsByHotel(hotelId: Int): List<Review> = reviewsList.filter { it.hotelId == hotelId }
-
-    fun addReview(hotelId: Int, userId: Int, rating: Float, text: String): Result<Review> {
-        val user = users.find { it.id == userId } ?: return Result.failure(Exception("Пользователь не найден"))
-        val newReview = Review(
-            id = reviewsList.maxOfOrNull { it.id }?.plus(1) ?: 1,
-            hotelId = hotelId,
-            userId = userId,
-            userName = user.name,
-            rating = rating,
-            text = text,
-            date = java.time.LocalDate.now().toString()
-        )
-        reviewsList.add(newReview)
-        return Result.success(newReview)
-    }
+    // NOTE: Отзывы теперь загружаются с сервера через ReviewsRepository
+    // fun getReviewsByHotel и fun addReview удалены
 
     // ==================== Bookings ====================
 

@@ -21,10 +21,6 @@ import java.util.concurrent.TimeUnit
  */
 object RetrofitClient {
 
-    // Для эмулятора Android используйте 10.0.2.2 вместо localhost
-    // Для физического устройства используйте IP вашего компьютера
-    private const val BASE_URL = "http://10.0.2.2:8080/"
-
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
@@ -42,11 +38,13 @@ object RetrofitClient {
     }
 
     private val retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)
+        .baseUrl(ServerConfig.BASE_URL)
         .client(okHttpClient)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
 
     val authApi: AuthApiService = retrofit.create(AuthApiService::class.java)
     val bookingApi: BookingApiService = retrofit.create(BookingApiService::class.java)
+    val hotelsApi: HotelsApiService = retrofit.create(HotelsApiService::class.java)
+    val reviewsApi: ReviewsApiService = retrofit.create(ReviewsApiService::class.java)
 }

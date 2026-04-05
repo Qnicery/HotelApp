@@ -40,6 +40,7 @@ import coil.disk.DiskCache
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.example.testapp.data.model.Room
+import com.example.testapp.data.api.ServerConfig
 import com.example.testapp.ui.viewmodel.HotelDetailsViewModel
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
@@ -136,6 +137,8 @@ fun RoomCard(
     imageLoader: ImageLoader,
     onClick: () -> Unit
 ) {
+    val imageUrl = ServerConfig.getImageUrl(room.imageUrl)
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -147,7 +150,7 @@ fun RoomCard(
             // Изображение номера
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(room.imageUrl)
+                    .data(imageUrl)
                     .build(),
                 imageLoader = imageLoader,
                 contentDescription = room.name,

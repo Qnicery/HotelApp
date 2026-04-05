@@ -29,6 +29,7 @@ import coil.disk.DiskCache
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.example.testapp.data.model.Review
+import com.example.testapp.data.api.ServerConfig
 import com.example.testapp.ui.viewmodel.HotelDetailsViewModel
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
@@ -113,9 +114,10 @@ fun HotelDetailsScreen(
                         .verticalScroll(rememberScrollState())
                 ) {
                     // Главное изображение
+                    val mainImageUrl = ServerConfig.getImageUrl(hotel.imageUrl)
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
-                            .data(hotel.imageUrl)
+                            .data(mainImageUrl)
                             .build(),
                         imageLoader = imageLoader,
                         contentDescription = hotel.name,
@@ -187,7 +189,8 @@ fun HotelDetailsScreen(
                         }
 
                         // Галерея
-                        if (hotel.gallery.isNotEmpty()) {
+                        val galleryUrls = ServerConfig.getImageUrls(hotel.gallery)
+                        if (galleryUrls.isNotEmpty()) {
                             Text(
                                 text = "Галерея",
                                 fontSize = 18.sp,
@@ -196,7 +199,7 @@ fun HotelDetailsScreen(
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                items(hotel.gallery) { imageUrl ->
+                                items(galleryUrls) { imageUrl ->
                                     AsyncImage(
                                         model = ImageRequest.Builder(LocalContext.current)
                                             .data(imageUrl)

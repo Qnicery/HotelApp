@@ -32,12 +32,15 @@ import androidx.compose.ui.unit.sp
 import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.testapp.data.api.ServerConfig
 
 @Composable
 fun HotelCard(
     hotel: Hotel,
     onClick: () -> Unit
 ) {
+    // Добавляем BASE_URL к imageUrl если это относительный путь
+    val imageUrl = ServerConfig.getImageUrl(hotel.imageUrl)
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -49,7 +52,7 @@ fun HotelCard(
             // Изображение отеля
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(hotel.imageUrl)
+                    .data(imageUrl)
                     .build(),
                 contentDescription = hotel.name,
                 modifier = Modifier
