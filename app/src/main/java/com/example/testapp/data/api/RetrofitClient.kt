@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Retrofit клиент для работы с API
- * 
+ *
  * Base URL: http://localhost:8080
  * Для реального устройства использовать 10.0.2.2 (эмулятор Android)
  * или IP вашего компьютера
@@ -48,4 +48,5 @@ object RetrofitClient {
         .build()
 
     val authApi: AuthApiService = retrofit.create(AuthApiService::class.java)
+    val bookingApi: BookingApiService = retrofit.create(BookingApiService::class.java)
 }

@@ -213,9 +213,6 @@ fun AppNavigation(
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
                 },
-                onNavigateToNotifications = {
-                    navController.navigate(Screen.Notifications.route)
-                },
                 onNavigateBack = {
                     navController.popBackStack()
                 },

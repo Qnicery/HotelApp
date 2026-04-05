@@ -9,7 +9,8 @@ data class User(
     val email: String,
     val password: String, // В реальном приложении хранить хэш
     val avatarUrl: String? = null,
-    val role: UserRole = UserRole.USER
+    val role: UserRole = UserRole.USER,
+    val registrationDate: String? = null // Дата регистрации
 )
 
 /**

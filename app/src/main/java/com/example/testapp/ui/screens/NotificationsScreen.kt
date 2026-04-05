@@ -13,18 +13,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.testapp.data.model.Notification
-import com.example.testapp.ui.viewmodel.ProfileViewModel
 
+/**
+ * Экран уведомлений
+ * TODO: Временно отключен, так как уведомления не предусмотрены в API (API_ROUTES.md)
+ * Когда backend добавит эндпоинты /notifications/my, экран будет восстановлен
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: ProfileViewModel = viewModel()
+    onNavigateBack: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -34,15 +33,6 @@ fun NotificationsScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
                     }
                 },
-                actions = {
-                    IconButton(onClick = { /* Отметить все как прочитанные */ }) {
-                        Icon(
-                            imageVector = Icons.Default.DoneAll,
-                            contentDescription = "Отметить все",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
@@ -50,141 +40,32 @@ fun NotificationsScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            contentAlignment = Alignment.Center
         ) {
-            items(uiState.notifications) { notification ->
-                NotificationCard(
-                    notification = notification,
-                    onMarkAsRead = {
-                        viewModel.markNotificationAsRead(notification.id)
-                    }
-                )
-            }
-
-            if (uiState.notifications.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 48.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.NotificationsNone,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Нет уведомлений",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun NotificationCard(
-    notification: Notification,
-    onMarkAsRead: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (notification.isRead) {
-                MaterialTheme.colorScheme.surfaceVariant
-            } else {
-                MaterialTheme.colorScheme.primaryContainer
-            }
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Иконка типа уведомления
-            Icon(
-                imageVector = when (notification.type) {
-                    com.example.testapp.data.model.NotificationType.BOOKING_CONFIRMED -> Icons.Default.CheckCircle
-                    com.example.testapp.data.model.NotificationType.BOOKING_CANCELLED -> Icons.Default.Cancel
-                    com.example.testapp.data.model.NotificationType.BOOKING_PENDING -> Icons.Default.Schedule
-                    com.example.testapp.data.model.NotificationType.REVIEW_REPLY -> Icons.Default.Reviews
-                    com.example.testapp.data.model.NotificationType.SYSTEM -> Icons.Default.Info
-                },
-                contentDescription = null,
-                tint = if (!notification.isRead) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                modifier = Modifier.size(24.dp)
-            )
-
             Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = notification.title,
-                        fontWeight = if (!notification.isRead) FontWeight.Bold else FontWeight.Medium
-                    )
-
-                    if (!notification.isRead) {
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = MaterialTheme.colorScheme.primary
-                        ) {
-                            Spacer(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .padding(2.dp)
-                            )
-                        }
-                    }
-                }
-
-                Text(
-                    text = notification.message,
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                Icon(
+                    imageVector = Icons.Default.NotificationsNone,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
                 Text(
-                    text = notification.createdAt,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "Уведомления пока не доступны",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 16.sp
                 )
-            }
-
-            if (!notification.isRead) {
-                IconButton(onClick = onMarkAsRead) {
-                    Icon(
-                        imageVector = Icons.Default.Done,
-                        contentDescription = "Отметить как прочитанное",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
+                Text(
+                    text = "Этот раздел будет добавлен после реализации API уведомлений на сервере",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontSize = 14.sp
+                )
             }
         }
     }

@@ -75,7 +75,8 @@ class AppRepository private constructor(private val context: Context) {
             email = "user@example.com",
             password = "123456",
             avatarUrl = null,
-            role = UserRole.USER
+            role = UserRole.USER,
+            registrationDate = "2024-01-01"
         ),
         User(
             id = 2,
@@ -83,7 +84,8 @@ class AppRepository private constructor(private val context: Context) {
             email = "hotel@admin.com",
             password = "123456",
             avatarUrl = null,
-            role = UserRole.HOTEL_ADMIN
+            role = UserRole.HOTEL_ADMIN,
+            registrationDate = "2024-01-05"
         ),
         User(
             id = 3,
@@ -91,7 +93,8 @@ class AppRepository private constructor(private val context: Context) {
             email = "system@admin.com",
             password = "123456",
             avatarUrl = null,
-            role = UserRole.SYSTEM_ADMIN
+            role = UserRole.SYSTEM_ADMIN,
+            registrationDate = "2024-01-10"
         )
     )
 
@@ -371,7 +374,8 @@ class AppRepository private constructor(private val context: Context) {
             name = name,
             email = email,
             password = password,
-            role = UserRole.USER
+            role = UserRole.USER,
+            registrationDate = java.time.LocalDate.now().toString()
         )
         users.add(newUser)
         _currentUser.value = newUser
@@ -567,7 +571,8 @@ data class UserSerializable(
     val email: String,
     val password: String,
     val avatarUrl: String? = null,
-    val role: UserRoleSerializable = UserRoleSerializable.USER
+    val role: UserRoleSerializable = UserRoleSerializable.USER,
+    val registrationDate: String? = null
 ) {
     constructor(user: User) : this(
         id = user.id,
@@ -575,7 +580,8 @@ data class UserSerializable(
         email = user.email,
         password = user.password,
         avatarUrl = user.avatarUrl,
-        role = UserRoleSerializable.fromUserRole(user.role)
+        role = UserRoleSerializable.fromUserRole(user.role),
+        registrationDate = user.registrationDate
     )
 
     fun toUser(): User = User(
@@ -584,7 +590,8 @@ data class UserSerializable(
         email = email,
         password = password,
         avatarUrl = avatarUrl,
-        role = role.toUserRole()
+        role = role.toUserRole(),
+        registrationDate = registrationDate
     )
 }
 
