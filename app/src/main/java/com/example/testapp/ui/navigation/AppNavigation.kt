@@ -1,6 +1,7 @@
 package com.example.testapp.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.navigation.NavHostController
@@ -19,21 +20,41 @@ fun AppNavigation(
     navController: NavHostController,
     authViewModel: AuthViewModel
 ) {
+    val uiState by authViewModel.uiState.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
     val userRole = currentUser?.role
 
+    // Всегда начинаем с Splash
+    // На Splash проверяем авторизацию и перенаправляем
     NavHost(
         navController = navController,
-        startDestination = determineStartDestination(userRole)
+        startDestination = Screen.Splash.route
     ) {
         // ==================== Auth Graph ====================
         composable(Screen.Splash.route) {
+            // Автоматическая проверка авторизации при входе на Splash
+            LaunchedEffect(Unit) {
+                authViewModel.checkAuthStatus()
+            }
+
             com.example.testapp.ui.screens.SplashScreen(
                 onNavigateToLogin = {
                     navController.navigate(Screen.Login.route)
                 },
                 onNavigateToRegister = {
                     navController.navigate(Screen.Register.route)
+                },
+                currentUser = currentUser,
+                isCheckingAuth = uiState.isCheckingAuth,
+                onAutoLoginSuccess = { role ->
+                    val startDestination = when (role) {
+                        UserRole.HOTEL_ADMIN -> Screen.AdminHotelDashboard.route
+                        UserRole.SYSTEM_ADMIN -> Screen.AdminSystemDashboard.route
+                        else -> Screen.Home.route
+                    }
+                    navController.navigate(startDestination) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
                 }
             )
         }
@@ -88,11 +109,18 @@ fun AppNavigation(
                 },
                 onLogout = {
                     authViewModel.logout()
-                    navController.navigate(Screen.Splash.route) {
-                        popUpTo(Screen.Splash.route) { inclusive = true }
-                    }
                 }
             )
+            
+            // Навигация на Splash после завершения logout
+            LaunchedEffect(uiState.isLoggedIn) {
+                if (!uiState.isLoggedIn && !uiState.isLoggingOut) {
+                    // Пользователь вышел, переходим на Splash
+                    navController.navigate(Screen.Splash.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
         }
 
         composable(Screen.Search.route) {
@@ -193,11 +221,17 @@ fun AppNavigation(
                 },
                 onNavigateToLogin = {
                     authViewModel.logout()
-                    navController.navigate(Screen.Splash.route) {
-                        popUpTo(Screen.Splash.route) { inclusive = true }
-                    }
                 }
             )
+            
+            // Навигация на Splash после завершения logout
+            LaunchedEffect(uiState.isLoggedIn) {
+                if (!uiState.isLoggedIn && !uiState.isLoggingOut) {
+                    navController.navigate(Screen.Splash.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
         }
 
         composable(Screen.BookingHistory.route) {
@@ -262,11 +296,17 @@ fun AppNavigation(
                 },
                 onLogout = {
                     authViewModel.logout()
-                    navController.navigate(Screen.Splash.route) {
-                        popUpTo(Screen.Splash.route) { inclusive = true }
-                    }
                 }
             )
+            
+            // Навигация на Splash после завершения logout
+            LaunchedEffect(uiState.isLoggedIn) {
+                if (!uiState.isLoggedIn && !uiState.isLoggingOut) {
+                    navController.navigate(Screen.Splash.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
         }
 
         composable(Screen.AdminHotelBookings.route) {
@@ -296,11 +336,17 @@ fun AppNavigation(
                 },
                 onLogout = {
                     authViewModel.logout()
-                    navController.navigate(Screen.Splash.route) {
-                        popUpTo(Screen.Splash.route) { inclusive = true }
-                    }
                 }
             )
+            
+            // Навигация на Splash после завершения logout
+            LaunchedEffect(uiState.isLoggedIn) {
+                if (!uiState.isLoggedIn && !uiState.isLoggingOut) {
+                    navController.navigate(Screen.Splash.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
         }
 
         composable(Screen.AdminUsersList.route) {

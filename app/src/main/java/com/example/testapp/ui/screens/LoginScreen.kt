@@ -133,13 +133,21 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                enabled = !uiState.isLoading
             ) {
-                Text(
-                    text = "Войти",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text(
+                        text = "Войти",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))

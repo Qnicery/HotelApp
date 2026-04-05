@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.testapp.data.model.User
 import com.example.testapp.data.model.UserRole
 import com.example.testapp.data.repository.AppRepository
+import com.example.testapp.data.repository.AuthApiRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,16 +14,17 @@ import kotlinx.coroutines.launch
 
 /**
  * ViewModel для авторизации и регистрации
- * Использует общий AppRepository через синглтон
+ * Использует AuthApiRepository для работы с сервером
  */
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val authApiRepository = AuthApiRepository.getInstance(application)
     private val repository = AppRepository.getInstance(application)
 
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-    val currentUser: StateFlow<User?> = repository.currentUser
+    val currentUser: StateFlow<User?> = authApiRepository.currentUser
 
     init {
         // Проверяем, есть ли сохранённый пользователь
@@ -30,7 +32,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun updateCurrentUser() {
-        val user = repository.getCurrentUser()
+        val user = authApiRepository.getCurrentUser()
         _uiState.value = _uiState.value.copy(
             currentUser = user,
             isLoggedIn = user != null
@@ -53,7 +55,11 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(confirmPassword = password)
     }
 
-    fun login(): Result<Unit> {
+    /**
+     * Авторизация пользователя через сервер
+     * POST /login
+     */
+    fun login() {
         val state = _uiState.value
         val email = state.email
         val password = state.password
@@ -61,35 +67,43 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         // Валидация
         if (email.isBlank()) {
             _uiState.value = state.copy(errorMessage = "Введите email")
-            return Result.failure(Exception("Введите email"))
+            return
         }
 
         if (password.isBlank()) {
             _uiState.value = state.copy(errorMessage = "Введите пароль")
-            return Result.failure(Exception("Введите пароль"))
+            return
         }
 
-        // Попытка входа
-        return repository.login(email, password)
-            .map { } // Игнорируем результат, возвращаем Unit
-            .onSuccess {
-                updateCurrentUser()
-                _uiState.value = state.copy(
-                    isLoggedIn = true,
-                    loginSuccess = true,
-                    errorMessage = null,
-                    currentUser = currentUser.value
-                )
-            }
-            .onFailure { error ->
-                _uiState.value = state.copy(
-                    loginSuccess = false,
-                    errorMessage = error.message ?: "Ошибка входа"
-                )
-            }
+        // Запрос к серверу
+        viewModelScope.launch {
+            _uiState.value = state.copy(isLoading = true, errorMessage = null)
+
+            authApiRepository.login(email, password)
+                .onSuccess { user ->
+                    _uiState.value = state.copy(
+                        isLoading = false,
+                        isLoggedIn = true,
+                        loginSuccess = true,
+                        errorMessage = null,
+                        currentUser = user
+                    )
+                }
+                .onFailure { error ->
+                    _uiState.value = state.copy(
+                        isLoading = false,
+                        loginSuccess = false,
+                        errorMessage = error.message ?: "Ошибка входа"
+                    )
+                }
+        }
     }
 
-    fun register(): Result<Unit> {
+    /**
+     * Регистрация пользователя через сервер
+     * POST /register
+     */
+    fun register() {
         val state = _uiState.value
         val name = state.name
         val email = state.email
@@ -99,61 +113,125 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         // Валидация
         if (name.isBlank()) {
             _uiState.value = state.copy(errorMessage = "Введите имя")
-            return Result.failure(Exception("Введите имя"))
+            return
         }
 
         if (email.isBlank()) {
             _uiState.value = state.copy(errorMessage = "Введите email")
-            return Result.failure(Exception("Введите email"))
+            return
         }
 
         if (password.isBlank()) {
             _uiState.value = state.copy(errorMessage = "Введите пароль")
-            return Result.failure(Exception("Введите пароль"))
+            return
         }
 
-        if (password.length < 6) {
-            _uiState.value = state.copy(errorMessage = "Пароль должен содержать минимум 6 символов")
-            return Result.failure(Exception("Пароль слишком короткий"))
+        if (password.length < 8) {
+            _uiState.value = state.copy(errorMessage = "Пароль должен содержать минимум 8 символов")
+            return
         }
 
         if (password != confirmPassword) {
             _uiState.value = state.copy(errorMessage = "Пароли не совпадают")
-            return Result.failure(Exception("Пароли не совпадают"))
+            return
         }
 
-        // Попытка регистрации
-        return repository.register(name, email, password)
-            .map { } // Игнорируем результат, возвращаем Unit
-            .onSuccess {
-                updateCurrentUser()
-                _uiState.value = state.copy(
-                    isLoggedIn = true,
-                    registerSuccess = true,
-                    errorMessage = null,
-                    currentUser = currentUser.value
-                )
-            }
-            .onFailure { error ->
-                _uiState.value = state.copy(
-                    registerSuccess = false,
-                    errorMessage = error.message ?: "Ошибка регистрации"
-                )
-            }
+        // Запрос к серверу
+        viewModelScope.launch {
+            _uiState.value = state.copy(isLoading = true, errorMessage = null)
+
+            authApiRepository.register(name, email, password)
+                .onSuccess { user ->
+                    // После регистрации сразу логинимся
+                    loginAfterRegistration(email, password)
+                }
+                .onFailure { error ->
+                    _uiState.value = state.copy(
+                        isLoading = false,
+                        registerSuccess = false,
+                        errorMessage = error.message ?: "Ошибка регистрации"
+                    )
+                }
+        }
+    }
+
+    /**
+     * Авторизация после успешной регистрации
+     */
+    private fun loginAfterRegistration(email: String, password: String) {
+        viewModelScope.launch {
+            authApiRepository.login(email, password)
+                .onSuccess { user ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isLoggedIn = true,
+                        registerSuccess = true,
+                        loginSuccess = true,
+                        errorMessage = null,
+                        currentUser = user
+                    )
+                }
+                .onFailure { error ->
+                    // Если логин не удался, всё равно показываем успех регистрации
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        registerSuccess = true,
+                        errorMessage = "Регистрация успешна! Теперь войдите в систему."
+                    )
+                }
+        }
+    }
+
+    /**
+     * Выход из системы
+     * POST /logout
+     */
+    fun logout() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoggingOut = true)
+            
+            authApiRepository.logout()
+            
+            // Сбрасываем всё состояние
+            _uiState.value = AuthUiState()
+        }
     }
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 
-    fun logout() {
-        repository.logout()
-        _uiState.value = AuthUiState()
+    fun getCurrentUser(): User? = authApiRepository.getCurrentUser()
+
+    fun getUserRole(): UserRole? = authApiRepository.getCurrentUser()?.role
+
+    /**
+     * Проверка авторизации при запуске
+     * Если есть сохранённый токен, проверяем его валидность
+     */
+    fun checkAuthStatus() {
+        if (authApiRepository.isAuthorized()) {
+            viewModelScope.launch {
+                _uiState.value = _uiState.value.copy(isCheckingAuth = true)
+                
+                authApiRepository.fetchCurrentUser()
+                    .onSuccess { user ->
+                        _uiState.value = _uiState.value.copy(
+                            isCheckingAuth = false,
+                            isLoggedIn = true,
+                            currentUser = user
+                        )
+                    }
+                    .onFailure {
+                        // Токен невалиден, выходим
+                        _uiState.value = _uiState.value.copy(isCheckingAuth = false)
+                        logout()
+                    }
+            }
+        } else {
+            _uiState.value = _uiState.value.copy(isCheckingAuth = false)
+        }
     }
-
-    fun getCurrentUser(): User? = repository.getCurrentUser()
-
-    fun getUserRole(): UserRole? = repository.getCurrentUser()?.role
 }
 
 data class AuthUiState(
@@ -164,6 +242,9 @@ data class AuthUiState(
     val isLoggedIn: Boolean = false,
     val loginSuccess: Boolean = false,
     val registerSuccess: Boolean = false,
+    val isLoading: Boolean = false,
+    val isCheckingAuth: Boolean = false,  // Проверка авторизации при запуске
+    val isLoggingOut: Boolean = false,    // Процесс выхода
     val errorMessage: String? = null,
     val currentUser: User? = null
 )
