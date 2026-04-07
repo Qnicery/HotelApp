@@ -59,11 +59,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,12 +88,22 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchResultsScreen(
+    selectedCity: String? = null,
+    checkInDate: String? = null,
+    checkOutDate: String? = null,
+    guests: Int? = null,
     onNavigateBack: () -> Unit,
-    onNavigateToHotelDetails: (Int) -> Unit,
+    onNavigateToHotelDetails: (hotelId: Int, checkIn: String?, checkOut: String?, guests: Int?) -> Unit,
     viewModel: SearchViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var searchTriggered by remember { mutableStateOf(false) }
 
+    // Инициализируем ViewModel параметрами из навигации
+    LaunchedEffect(Unit) {
+        viewModel.initSearchParams(selectedCity, checkInDate, checkOutDate, guests)
+        viewModel.performSearch()
+    }
 
     Scaffold(
         topBar = {
@@ -260,7 +270,7 @@ fun SearchResultsScreen(
                     items(uiState.searchResults) { hotel ->
                         HotelCard(
                             hotel = hotel,
-                            onClick = { onNavigateToHotelDetails(hotel.id) }
+                            onClick = { onNavigateToHotelDetails(hotel.id, checkInDate, checkOutDate, guests) }
                         )
                     }
                 }

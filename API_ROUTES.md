@@ -369,6 +369,63 @@ GET /rooms/hotel/{hotelId}
 - `400 Bad Request` - Invalid hotel ID
 - `500 Internal Server Error` - Server error
 
+### Get Available Rooms by Hotel ID and Date Range
+
+```
+GET /rooms/hotel/{hotelId}/available?from={date}&to={date}
+```
+
+**Path Parameters:**
+- `hotelId` (Int) - Hotel ID
+
+**Query Parameters:**
+- `from` (String) - Start date in ISO-8601 format (e.g., `2026-04-10T14:00:00Z`)
+- `to` (String) - End date in ISO-8601 format (e.g., `2026-04-15T12:00:00Z`)
+
+**Description:** Returns all rooms in the hotel that are available for the given date range. A room is considered unavailable if it has an active booking that overlaps with the requested dates.
+
+**Responses:**
+- `200 OK` - `AvailableRoomsResponse`
+- `400 Bad Request` - Invalid hotel ID or missing dates
+- `500 Internal Server Error` - Server error
+
+**Response Example (Available Rooms):**
+```json
+{
+  "hotelId": 1,
+  "from": "2026-05-01T14:00:00Z",
+  "to": "2026-05-05T12:00:00Z",
+  "availableRooms": [
+    {
+      "roomId": 1,
+      "roomName": "Standard Room",
+      "description": "Cozy room with city view",
+      "price": 100.0,
+      "maxGuests": 2,
+      "photoUrls": ["https://example.com/room1.jpg"]
+    },
+    {
+      "roomId": 3,
+      "roomName": "Deluxe Suite",
+      "description": null,
+      "price": 250.0,
+      "maxGuests": 4,
+      "photoUrls": []
+    }
+  ]
+}
+```
+
+**Response Example (No Available Rooms):**
+```json
+{
+  "hotelId": 1,
+  "from": "2026-04-10T14:00:00Z",
+  "to": "2026-04-15T12:00:00Z",
+  "availableRooms": []
+}
+```
+
 ### Create Room
 
 ```
@@ -574,6 +631,31 @@ GET /room-amenities/room/{roomId}
 - `400 Bad Request` - Invalid room ID
 - `500 Internal Server Error` - Server error
 
+### Get All Unique Amenities by Hotel ID
+
+```
+GET /room-amenities/hotel/{hotelId}
+```
+
+**Path Parameters:**
+- `hotelId` (Int) - Hotel ID
+
+**Description:** Returns all unique amenities from all rooms in the hotel. Automatically removes duplicates when the same amenity appears in multiple rooms.
+
+**Responses:**
+- `200 OK` - `List<AmenityDTO>` (unique amenities)
+- `400 Bad Request` - Invalid hotel ID
+- `500 Internal Server Error` - Server error
+
+**Example Response:**
+```json
+[
+  { "id": 1, "name": "WiFi" },
+  { "id": 2, "name": "Air Conditioning" },
+  { "id": 3, "name": "Mini Bar" }
+]
+```
+
 ### Assign Amenity to Room
 
 ```
@@ -638,6 +720,55 @@ GET /bookings/user/{userId}
 - `400 Bad Request` - Invalid user ID
 - `500 Internal Server Error` - Server error
 
+### Check Room Availability
+
+```
+GET /bookings/room/{roomId}/availability?from={date}&to={date}
+```
+
+**Path Parameters:**
+- `roomId` (Int) - Room ID
+
+**Query Parameters:**
+- `from` (String) - Start date in ISO-8601 format (e.g., `2026-04-10T14:00:00Z`)
+- `to` (String) - End date in ISO-8601 format (e.g., `2026-04-15T12:00:00Z`)
+
+**Description:** Checks if a room is available for the given date range. Returns conflicting bookings if the room is already booked.
+
+**Responses:**
+- `200 OK` - `AvailabilityResponse`
+- `400 Bad Request` - Invalid room ID or missing/dates
+- `500 Internal Server Error` - Server error
+
+**Response Example (Available):**
+```json
+{
+  "roomId": 1,
+  "from": "2026-05-01T14:00:00Z",
+  "to": "2026-05-05T12:00:00Z",
+  "isAvailable": true,
+  "conflictingBookings": []
+}
+```
+
+**Response Example (Not Available):**
+```json
+{
+  "roomId": 1,
+  "from": "2026-04-10T14:00:00Z",
+  "to": "2026-04-15T12:00:00Z",
+  "isAvailable": false,
+  "conflictingBookings": [
+    {
+      "bookingId": 5,
+      "dateFrom": "2026-04-10T14:00:00Z",
+      "dateTo": "2026-04-14T12:00:00Z",
+      "status": "Active"
+    }
+  ]
+}
+```
+
 ### Create Booking
 
 ```
@@ -650,15 +781,18 @@ POST /bookings
   "userId": 1,
   "roomId": 1,
   "dateFrom": "2026-04-10T14:00:00Z",
-  "dateTo": "2026-04-15T12:00:00Z"
+  "dateTo": "2026-04-15T12:00:00Z",
+  "guests": 2,
+  "totalPrice": 500.0
 }
 ```
 
-**Note:** Dates must be in ISO-8601 format. `dateFrom` must be before `dateTo`.
+**Note:** Dates must be in ISO-8601 format. `dateFrom` must be before `dateTo`. The `hotelId` is automatically derived from the room. **The system automatically checks for overlapping bookings** and returns `409 Conflict` if the room is already booked for the selected dates.
 
 **Responses:**
 - `201 Created` - `BookingDTO`
 - `400 Bad Request` - Validation error (date_from must be before date_to)
+- `409 Conflict` - Room is already booked for the selected dates
 - `500 Internal Server Error` - Server error
 
 ### Update Booking Status
@@ -858,7 +992,9 @@ PUT /admin-requests/{id}/status
   "city": "string",
   "description": "string or null",
   "address": "string",
-  "rating": 0.0
+  "rating": 0.0,
+  "type": "Гостиница",
+  "photoUrls": ["https://example.com/photo1.jpg", "https://example.com/photo2.jpg"]
 }
 ```
 
@@ -871,7 +1007,8 @@ PUT /admin-requests/{id}/status
   "description": "string or null",
   "price": 0.0,
   "maxGuests": 2,
-  "status": "string"
+  "status": "string",
+  "photoUrls": ["https://example.com/photo1.jpg", "https://example.com/photo2.jpg"]
 }
 ```
 
@@ -889,10 +1026,50 @@ PUT /admin-requests/{id}/status
   "id": 1,
   "userId": 1,
   "roomId": 1,
+  "hotelId": 1,
   "dateFrom": "ISO-8601 timestamp",
   "dateTo": "ISO-8601 timestamp",
+  "guests": 2,
+  "totalPrice": 500.0,
   "status": "string",
   "createdAt": "ISO-8601 timestamp"
+}
+```
+
+### AvailabilityResponse
+```json
+{
+  "roomId": 1,
+  "from": "ISO-8601 timestamp",
+  "to": "ISO-8601 timestamp",
+  "isAvailable": true,
+  "conflictingBookings": [
+    {
+      "bookingId": 5,
+      "dateFrom": "ISO-8601 timestamp",
+      "dateTo": "ISO-8601 timestamp",
+      "status": "Active"
+    }
+  ]
+}
+```
+
+### AvailableRoomsResponse
+```json
+{
+  "hotelId": 1,
+  "from": "ISO-8601 timestamp",
+  "to": "ISO-8601 timestamp",
+  "availableRooms": [
+    {
+      "roomId": 1,
+      "roomName": "string",
+      "description": "string or null",
+      "price": 100.0,
+      "maxGuests": 2,
+      "photoUrls": ["https://example.com/photo.jpg"]
+    }
+  ]
 }
 ```
 

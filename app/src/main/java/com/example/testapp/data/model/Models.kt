@@ -43,7 +43,7 @@ data class Hotel(
  * Тип жилья
  */
 enum class HotelType(val displayName: String) {
-    HOTEL("Отель"),
+    HOTEL("Гостиница"),
     RESORT("Курорт"),
     APARTMENT("Апартаменты"),
     HOSTEL("Хостел"),

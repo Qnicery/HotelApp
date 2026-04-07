@@ -1,10 +1,12 @@
 package com.example.testapp.data.api
 
+import com.example.testapp.data.api.model.AvailableRoomsResponse
 import com.example.testapp.data.api.model.HotelDTO
 import com.example.testapp.data.api.model.RoomDTO
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 /**
  * API интерфейс для работы с отелями и комнатами
@@ -55,4 +57,17 @@ interface HotelsApiService {
     suspend fun getRoomsByHotelId(
         @Path("hotelId") hotelId: Int
     ): Response<List<RoomDTO>>
+
+    /**
+     * Получить доступные комнаты отеля по датам
+     * GET /rooms/hotel/{hotelId}/available?from={date}&to={date}
+     *
+     * Response: 200 OK - AvailableRoomsResponse
+     */
+    @GET("rooms/hotel/{hotelId}/available")
+    suspend fun getAvailableRoomsByHotelId(
+        @Path("hotelId") hotelId: Int,
+        @Query("from") dateFrom: String,
+        @Query("to") dateTo: String
+    ): Response<AvailableRoomsResponse>
 }

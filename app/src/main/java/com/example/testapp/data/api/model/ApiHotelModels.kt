@@ -5,8 +5,8 @@ import kotlinx.serialization.Serializable
 /**
  * Ответ с информацией об отеле (HotelDTO)
  * GET /hotels
- * 
- * Согласно API_ROUTES.md + сервер реально возвращает photoUrls:
+ *
+ * Согласно API_ROUTES.md + сервер реально возвращает:
  * {
  *   "id": 1,
  *   "adminId": 1,
@@ -15,6 +15,7 @@ import kotlinx.serialization.Serializable
  *   "description": "string or null",
  *   "address": "string",
  *   "rating": 0.0,
+ *   "type": "Гостиница",
  *   "photoUrls": ["uploads/hotels/1/photo1.jpg", "uploads/hotels/1/photo2.jpg"]
  * }
  */
@@ -27,13 +28,14 @@ data class HotelDTO(
     val description: String? = null,
     val address: String,
     val rating: Double = 0.0,
+    val type: String? = null,
     val photoUrls: List<String>? = null
 )
 
 /**
  * Ответ с информацией о комнате (RoomDTO)
  * GET /rooms/hotel/{hotelId}
- * 
+ *
  * Согласно API_ROUTES.md + сервер реально возвращает photoUrls:
  * {
  *   "id": 1,
@@ -56,4 +58,19 @@ data class RoomDTO(
     val maxGuests: Int,
     val status: String,
     val photoUrls: List<String>? = null
+)
+
+/**
+ * Удобство (AmenityDTO)
+ * GET /amenities, GET /room-amenities/room/{roomId}, GET /room-amenities/hotel/{hotelId}
+ *
+ * {
+ *   "id": 1,
+ *   "name": "WiFi"
+ * }
+ */
+@Serializable
+data class AmenityDTO(
+    val id: Int,
+    val name: String
 )

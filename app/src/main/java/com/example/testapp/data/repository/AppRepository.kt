@@ -323,7 +323,8 @@ class AppRepository private constructor(private val context: Context) {
         userId: Int,
         dateFrom: String,
         dateTo: String,
-        guests: Int
+        guests: Int,
+        totalPrice: Double = 0.0
     ): Result<Booking> {
         val room = roomsList.find { it.id == roomId } ?: return Result.failure(Exception("Номер не найден"))
         val hotel = hotelsList.find { it.id == room.hotelId } ?: return Result.failure(Exception("Отель не найден"))
@@ -332,6 +333,9 @@ class AppRepository private constructor(private val context: Context) {
         val from = java.time.LocalDate.parse(dateFrom)
         val to = java.time.LocalDate.parse(dateTo)
         val nights = java.time.temporal.ChronoUnit.DAYS.between(from, to).toInt().coerceAtLeast(1)
+
+        // Используем переданный totalPrice или вычисляем
+        val finalTotalPrice = if (totalPrice > 0) totalPrice else room.pricePerNight * nights
 
         val newBooking = Booking(
             id = bookingsList.maxOfOrNull { it.id }?.plus(1) ?: 1,
@@ -343,7 +347,7 @@ class AppRepository private constructor(private val context: Context) {
             dateFrom = dateFrom,
             dateTo = dateTo,
             guests = guests,
-            totalPrice = room.pricePerNight * nights,
+            totalPrice = finalTotalPrice,
             status = BookingStatus.CONFIRMED,
             createdAt = java.time.LocalDateTime.now().toString()
         )

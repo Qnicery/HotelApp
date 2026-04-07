@@ -2,22 +2,18 @@
 
 ## Обзор проекта
 
-**HotelApp** — это Android-приложение для поиска, просмотра и бронирования отелей, разработанное с использованием современных технологий Android-разработки:
+**HotelApp** — Android-приложение для поиска, просмотра и бронирования отелей.
 
-- **Kotlin** — основной язык разработки
-- **Jetpack Compose** — декларативный UI-фреймворк
+- **Kotlin** — основной язык
+- **Jetpack Compose** — декларативный UI
 - **Material 3** — дизайн-система
-- **MVVM архитектура** — разделение логики и UI
-- **Navigation Compose** — навигация между экранами с поддержкой графов
-- **Gradle Kotlin DSL + Version Catalog** — современная система сборки
+- **MVVM + Repository Pattern** — архитектура
+- **Navigation Compose** — навигация с графами по ролям
+- **Retrofit + Kotlinx Serialization** — REST API
 - **Coil** — загрузка изображений
-- **Repository Pattern** — абстракция доступа к данным
-- **Retrofit + Kotlinx Serialization** — работа с backend API
-- **Encrypted SharedPreferences** — безопасное хранение сессии пользователя
+- **EncryptedSharedPreferences** — безопасное хранение сессии
 
-**Package:** `com.example.testapp`  
-**Application ID:** `com.example.testapp`  
-**Version:** 1.0 (versionCode: 1)
+**Package:** `com.example.testapp` | **minSdk:** 26 | **targetSdk:** 36 | **Kotlin:** 2.2.0 | **AGP:** 8.13.2
 
 ---
 
@@ -25,207 +21,132 @@
 
 ```
 TestApp/
-├── app/
-│   ├── src/main/
-│   │   ├── java/com/example/testapp/
-│   │   │   ├── data/
-│   │   │   │   ├── api/                           # API слой
-│   │   │   │   │   ├── model/                     # API модели (DTO)
-│   │   │   │   │   │   ├── ApiAuthModels.kt       # Модели авторизации
-│   │   │   │   │   │   ├── ApiBookingModels.kt    # Модели бронирований
-│   │   │   │   │   │   ├── ApiHotelModels.kt      # Модели отелей/комнат
-│   │   │   │   │   │   └── ApiReviewModels.kt     # Модели отзывов
-│   │   │   │   │   ├── AuthApiService.kt          # API авторизации
-│   │   │   │   │   ├── BookingApiService.kt       # API бронирований
-│   │   │   │   │   ├── HotelsApiService.kt        # API отелей
-│   │   │   │   │   ├── ReviewsApiService.kt       # API отзывов
-│   │   │   │   │   ├── RetrofitClient.kt          # Retrofit клиент (синглтон)
-│   │   │   │   │   └── ServerConfig.kt            # Конфигурация сервера (BASE_URL)
-│   │   │   │   ├── model/
-│   │   │   │   │   └── Models.kt                  # Модели приложения
-│   │   │   │   └── repository/
-│   │   │   │       ├── AppRepository.kt           # Репозиторий (mock данные для бронирований)
-│   │   │   │       ├── AuthApiRepository.kt       # Репозиторий авторизации (API)
-│   │   │   │       ├── HotelsRepository.kt        # Репозиторий отелей (API)
-│   │   │   │       ├── ProfileRepository.kt       # Репозиторий профиля (API)
-│   │   │   │       └── ReviewsRepository.kt       # Репозиторий отзывов (API)
-│   │   │   ├── ui/
-│   │   │   │   ├── components/                    # Переиспользуемые UI-компоненты
-│   │   │   │   ├── navigation/
-│   │   │   │   │   ├── Screen.kt                  # sealed class навигации
-│   │   │   │   │   └── AppNavigation.kt           # Граф навигации
-│   │   │   │   ├── screens/
-│   │   │   │   │   ├── SplashScreen.kt            # Экран приветствия
-│   │   │   │   │   ├── LoginScreen.kt             # Экран авторизации
-│   │   │   │   │   ├── RegisterScreen.kt          # Экран регистрации
-│   │   │   │   │   ├── HomeScreen.kt              # Главный экран со списком отелей
-│   │   │   │   │   ├── SearchScreen.kt            # Экран поиска
-│   │   │   │   │   ├── SearchResultsScreen.kt     # Результаты поиска
-│   │   │   │   │   ├── HotelDetailsScreen.kt      # Детали отеля
-│   │   │   │   │   ├── RoomsListScreen.kt         # Список номеров
-│   │   │   │   │   ├── BookingScreen.kt           # Бронирование
-│   │   │   │   │   ├── ProfileScreen.kt           # Профиль пользователя
-│   │   │   │   │   ├── BookingHistoryScreen.kt    # История бронирований
-│   │   │   │   │   ├── ReviewsScreen.kt           # Отзывы
-│   │   │   │   │   ├── NotificationsScreen.kt     # Уведомления (заглушка)
-│   │   │   │   │   ├── SettingsScreen.kt          # Настройки
-│   │   │   │   │   └── admin/                     # Экраны администратора
-│   │   │   │   ├── theme/
-│   │   │   │   │   ├── Color.kt                   # Цветовая палитра
-│   │   │   │   │   ├── Theme.kt                   # Тема приложения
-│   │   │   │   │   └── Type.kt                    # Типографика
-│   │   │   │   └── viewmodel/
-│   │   │   │       ├── AuthViewModel.kt           # ViewModel авторизации
-│   │   │   │       ├── HotelsViewModel.kt         # ViewModel списка отелей
-│   │   │   │       ├── HotelDetailsViewModel.kt   # ViewModel деталей отеля
-│   │   │   │       ├── BookingViewModel.kt
-│   │   │   │       ├── ProfileViewModel.kt        # ViewModel профиля
-│   │   │   │       ├── ReviewsViewModel.kt        # ViewModel отзывов
-│   │   │   │       ├── SearchViewModel.kt         # ViewModel поиска
-│   │   │   │       └── AdminViewModel.kt
-│   │   │   └── MainActivity.kt                    # Главная Activity
-│   │   ├── res/                                   # Ресурсы
-│   │   └── AndroidManifest.xml
-│   ├── build.gradle.kts
-│   └── proguard-rules.pro
-├── gradle/
-│   └── libs.versions.toml                         # Version catalog зависимостей
-├── build.gradle.kts
-├── settings.gradle.kts
-├── gradle.properties
-├── project.md                                     # Полная спецификация
-├── USER_FLOW.md                                   # Пользовательские сценарии
-├── SEARCH_FEATURE.md                              # Документация поиска
-├── API_ROUTES.md                                  # Документация backend API
-├── SERVER_AUTH.md                                 # Документация авторизации
-├── LOG.md                                         # Лог изменений
-├── TODO.md                                        # Список задач
-└── QWEN.md                                        # Этот файл
+├── app/src/main/java/com/example/testapp/
+│   ├── data/
+│   │   ├── api/                          # API слой
+│   │   │   ├── model/                    # DTO (ApiAuthModels, ApiBookingModels, ApiHotelModels, ApiReviewModels)
+│   │   │   ├── AmenitiesApiService.kt
+│   │   │   ├── AuthApiService.kt
+│   │   │   ├── BookingApiService.kt
+│   │   │   ├── HotelsApiService.kt
+│   │   │   ├── RetrofitClient.kt          # Singleton Retrofit
+│   │   │   ├── ReviewsApiService.kt
+│   │   │   └── ServerConfig.kt            # BASE_URL = "http://10.0.2.2:8080/"
+│   │   ├── model/
+│   │   │   └── Models.kt                  # Модели приложения (User, Hotel, Room, Booking, Review...)
+│   │   └── repository/
+│   │       ├── AppRepository.kt           # Legacy: mock-данные (не используется новыми экранами)
+│   │       ├── AuthApiRepository.kt       # Авторизация, сессия, токен (API)
+│   │       ├── BookingRepository.kt       # Бронирования (API)
+│   │       ├── HotelsRepository.kt        # Отели, комнаты, города, удобства (API)
+│   │       ├── ProfileRepository.kt       # Профиль, бронирования пользователя (API)
+│   │       └── ReviewsRepository.kt       # Отзывы, статистика (API)
+│   ├── ui/
+│   │   ├── components/                    # Переиспользуемые UI (PickerDialogs, MaterialDateRangePicker)
+│   │   ├── navigation/
+│   │   │   ├── Screen.kt                  # sealed class экранов
+│   │   │   └── AppNavigation.kt           # NavHost с 4 графами
+│   │   ├── screens/                       # Все экраны приложения
+│   │   │   └── admin/                     # Админ-панели
+│   │   ├── theme/                         # Цвета, тема, типографика
+│   │   └── viewmodel/                     # Все ViewModel
+│   └── MainActivity.kt
+├── gradle/libs.versions.toml              # Version Catalog
+├── API_ROUTES.md                          # Полная документация backend API
+├── TODO.md                                # Список задач
+├── LOG.md                                 # Лог изменений
+├── project.md                             # Спецификация
+├── USER_FLOW.md                           # Пользовательские сценарии
+├── SEARCH_FEATURE.md                      # Документация поиска
+└── SERVER_AUTH.md                         # Документация авторизации
 ```
 
 ---
 
-## Архитектура приложения
-
-Приложение построено по архитектуре **MVVM (Model-View-ViewModel)** с использованием **Repository Pattern**:
+## Архитектура
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    UI Layer (Screens)                    │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐ │
-│  │  Splash  │  │  Login   │  │   Home   │  │ Profile │ │
-│  └──────────┘  └──────────┘  └──────────┘  └─────────┘ │
-└─────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────┐
-│                  ViewModel Layer                         │
-│  ┌──────────────────┐    ┌──────────────────────────┐   │
-│  │  AuthViewModel   │    │   HotelsViewModel        │   │
-│  │  (StateFlow)     │    │   (StateFlow)            │   │
-│  └──────────────────┘    └──────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────┐
-│                  Repository Layer                        │
-│  ┌────────────────┐  ┌───────────────┐  ┌────────────┐ │
-│  │AuthApiRepository│  │HotelsRepository│ │ProfileRepo │ │
-│  │  (API /me)     │  │  (API hotels) │  │ (API prof) │ │
-│  └────────────────┘  └───────────────┘  └────────────┘ │
-└─────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────┐
-│                  API Layer (Retrofit)                    │
-│  ┌──────────────┐  ┌──────────────┐  ┌───────────────┐ │
-│  │  AuthApi     │  │ HotelsApi    │  │ ReviewsApi    │ │
-│  │  Service     │  │  Service     │  │  Service      │ │
-│  └──────────────┘  └──────────────┘  └───────────────┘ │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│              UI Layer (Compose Screens)          │
+│  Splash → Login → Home → Search → Results → ... │
+└──────────────────────┬──────────────────────────┘
+                       ▼
+┌─────────────────────────────────────────────────┐
+│           ViewModel Layer (StateFlow)            │
+│  AuthVM, HotelsVM, SearchVM, BookingVM, ...     │
+└──────────────────────┬──────────────────────────┘
+                       ▼
+┌─────────────────────────────────────────────────┐
+│         Repository Layer (Singleton per ctx)     │
+│  AuthApiRepo, HotelsRepo, BookingRepo, ...      │
+└──────────────────────┬──────────────────────────┘
+                       ▼
+┌─────────────────────────────────────────────────┐
+│           API Layer (Retrofit + OkHttp)          │
+│  AuthApi, HotelsApi, BookingApi, ReviewsApi     │
+└─────────────────────────────────────────────────┘
 ```
+
+### Ключевые принципы
+
+- **Repository Pattern** — каждый домен имеет свой репозиторий с `getInstance(context)` singleton
+- **StateFlow** — все ViewModel используют `MutableStateFlow` + `asStateFlow()`
+- **ServerConfig** — все URL изображений проходят через `ServerConfig.getImageUrl()`
+- **Result<T>** — репозитории возвращают `Result<T>` с обработкой ошибок
 
 ---
 
 ## Backend API
 
-### Базовый URL
-```
-http://10.0.2.2:8080/
-```
-
-**ServerConfig.kt** содержит единую точку конфигурации:
-```kotlin
-object ServerConfig {
-    const val BASE_URL = "http://10.0.2.2:8080/"
-    
-    fun getImageUrl(imagePath: String?): String
-    fun getImageUrls(imagePaths: List<String>?): List<String>
-}
-```
-
-### Реализованные API эндпоинты
+**Base URL:** `http://10.0.2.2:8080/` (для эмулятора)
 
 | Метод | Эндпоинт | Описание | Репозиторий |
 |-------|----------|----------|-------------|
 | POST | `/register` | Регистрация | AuthApiRepository |
-| POST | `/login` | Авторизация | AuthApiRepository |
+| POST | `/login` | Авторизация (возвращает `{"token":"..."}`) | AuthApiRepository |
 | POST | `/logout` | Выход | AuthApiRepository |
 | GET | `/me` | Текущий пользователь | AuthApiRepository |
 | GET | `/hotels` | Все отели | HotelsRepository |
 | GET | `/hotels/{id}` | Отель по ID | HotelsRepository |
 | GET | `/hotels/city/{city}` | Отели по городу | HotelsRepository |
+| GET | `/rooms/{id}` | Комната по ID | HotelsApiService |
 | GET | `/rooms/hotel/{hotelId}` | Комнаты отеля | HotelsRepository |
-| GET | `/bookings/user/{userId}` | Бронирования пользователя | ProfileRepository |
-| PUT | `/bookings/{id}/status` | Обновить статус | ProfileRepository |
-| GET | `/reviews/hotel/{hotelId}` | Отзывы отеля | ReviewsRepository |
-| POST | `/reviews` | Создать отзыв | ReviewsRepository |
+| GET | `/amenities` | Все удобства | HotelsRepository |
+| GET | `/room-amenities/hotel/{hotelId}` | Удобства отеля | HotelsRepository |
+| GET | `/room-amenities/room/{roomId}` | Удобства комнаты | AmenitiesApiService |
+| POST | `/bookings` | Создать бронирование | BookingRepository |
+| GET | `/bookings/{id}` | Бронирование по ID | BookingRepository |
+| GET | `/bookings/user/{userId}` | Бронирования пользователя | BookingRepository |
+| PUT | `/bookings/{id}/status` | Обновить статус | BookingRepository |
+| GET | `/reviews/hotel/{hotelId}` | Отзывы отеля (с статистикой) | ReviewsRepository |
+| POST | `/reviews` | Создать отзыв (требует `bookingId`) | ReviewsRepository |
 
-### Неполная интеграция (требуется доработка сервера)
+### Формат дат
 
-- ❌ **Уведомления** — нет эндпоинтов в API_ROUTES.md
-- ❌ **Создание отзыва** — требует `bookingId`, который недоступен клиенту
-- ⚠️ **HotelDTO** — не возвращает `photoUrls`, `type`, `reviewsCount`, `amenities`
-- ⚠️ **RoomDTO** — не возвращает `photoUrls`
-- ⚠️ **BookingDTO** — не возвращает `hotelId`, `hotelName`, `roomName`, `guests`, `totalPrice`
-
-Полная документация API: **API_ROUTES.md**
-
----
-
-## Роли пользователей
-
-| Роль | Описание | Стартовый экран |
-|------|----------|-----------------|
-| `USER` | Обычный пользователь | Home (список отелей) |
-| `HOTEL_ADMIN` | Администратор отеля | AdminHotelDashboard |
-| `SYSTEM_ADMIN` | Системный администратор | AdminSystemDashboard |
+Бронирования: ISO-8601 с временем — `"2026-04-16T14:00:00Z"` (заезд 14:00, выезд 12:00)
 
 ---
 
-## Экраны приложения
+## Навигация
 
-### Auth Graph
-- `Splash` — приветственный экран
-- `Login` — авторизация
-- `Register` — регистрация
+### Графы по ролям
 
-### Main Graph
-- `Home` — список отелей с фильтрами по городам
-- `Search` — расширенный поиск
-- `SearchResults` — результаты поиска
-- `HotelDetails` — детали отеля
-- `RoomsList` — список номеров
-- `Booking` — оформление бронирования
-- `Profile` — профиль пользователя (данные с сервера)
-- `BookingHistory` — история бронирований
-- `Reviews` — отзывы об отеле
-- `Notifications` — уведомления (заглушка)
-- `Settings` — настройки
+| Роль | Стартовый экран |
+|------|-----------------|
+| `USER` | Home (список отелей) |
+| `HOTEL_ADMIN` | AdminHotelDashboard |
+| `SYSTEM_ADMIN` | AdminSystemDashboard |
 
-### Admin Graphs
-- `AdminHotelDashboard` — панель администратора отеля
-- `AdminSystemDashboard` — панель системного администратора
+### Основные экраны (User)
+
+`Splash` → `Login` / `Register` → `Home` → `Search` → `SearchResults` → `HotelDetails` → `RoomsList` → `Booking`
+
+Параметры поиска (city, checkIn, checkOut, guests) передаются через query-параметры навигации и инициализируются в ViewModel каждого экрана.
+
+### Экраны администратора
+
+- **Hotel Admin:** Dashboard → Edit Hotel → Rooms List → Room Edit → Bookings → Reviews
+- **System Admin:** Dashboard → Users List → User Edit → Pending Requests
 
 ---
 
@@ -235,18 +156,18 @@ object ServerConfig {
 |-------|--------|------|
 | `user@example.com` | `123456` | USER |
 | `hotel@admin.com` | `123456` | HOTEL_ADMIN |
-| `system@admin.com` | `123456` | SYSTEM_ADMIN |
+| `system@admin.com` | `1233456` | SYSTEM_ADMIN |
 
 ---
 
 ## Сборка и запуск
 
 ### Требования
-- **Android Studio** (последняя стабильная версия)
+- **Android Studio** (последняя стабильная)
 - **JDK 11+**
-- **Android SDK** (API 26–36)
+- **Android SDK** API 26–36
 
-### Команды Gradle
+### Команды
 
 ```bash
 # Сборка debug-APK
@@ -255,87 +176,42 @@ object ServerConfig {
 # Установка на устройство/эмулятор
 .\gradlew.bat installDebug
 
-# Запуск приложения
-adb shell am start -n com.example.testapp/.MainActivity
-
 # Полная сборка
 .\gradlew.bat build
 
 # Очистка
 .\gradlew.bat clean
-
-# Запуск тестов
-.\gradlew.bat test
-```
-
-### Минимальная конфигурация
-```kotlin
-minSdk = 26
-targetSdk = 36
-compileSdk = 36
 ```
 
 ---
 
 ## Ключевые зависимости
 
-| Библиотека | Версия | Назначение |
-|-----------|--------|------------|
-| Kotlin | 2.2.0 | Язык разработки |
-| AGP | 8.13.2 | Android Gradle Plugin |
-| Compose BOM | 2024.09.00 | UI-фреймворк |
-| Navigation Compose | 2.8.6 | Навигация |
-| ViewModel Compose | 2.8.7 | MVVM |
-| Coil | 2.7.0 | Загрузка изображений |
-| Retrofit | (через libs) | HTTP-клиент |
-| Kotlinx Serialization | 1.6.3 | JSON |
-| Security Crypto | 1.1.0-alpha06 | Encrypted SharedPreferences |
-| OkHttp | 4.12.0 | HTTP-клиент для Coil |
+| Библиотека | Назначение |
+|-----------|------------|
+| Kotlin 2.2.0 | Язык |
+| Compose BOM 2024.09.00 | UI |
+| Navigation Compose 2.8.6 | Навигация |
+| ViewModel Compose 2.8.7 | MVVM |
+| Coil 2.7.0 | Изображения |
+| Retrofit 2.11.0 | HTTP |
+| Kotlinx Serialization 1.6.3 | JSON |
+| Security Crypto 1.1.0-alpha06 | Encrypted SharedPreferences |
+| OkHttp 4.12.0 | HTTP-клиент |
 
 ---
 
-## Архитектурные принципы
+## Известные ограничения и TODO
 
-### Repository Pattern
-Каждый домен имеет свой репозиторий:
-- **AuthApiRepository** — авторизация, сессия, токен
-- **HotelsRepository** — отели, комнаты, города
-- **ProfileRepository** — профиль пользователя, бронирования
-- **ReviewsRepository** — отзывы, статистика
+Полный список: **TODO.md**
 
-### State Management
-Все ViewModel используют `StateFlow`:
-```kotlin
-private val _uiState = MutableStateFlow(UiState())
-val uiState: StateFlow<UiState> = _uiState.asStateFlow()
-```
-
-### Image Loading
-Все URL изображений проходят через `ServerConfig.getImageUrl()`:
-```kotlin
-val imageUrl = ServerConfig.getImageUrl(dto.photoUrls?.firstOrNull())
-```
-
----
-
-## Известные проблемы и TODO
-
-Полный список задач: **TODO.md**
-
-### 🔴 Высокий приоритет
-1. Загрузка удобств комнат через `GET /room-amenities/room/{roomId}`
-2. Добавить недостающие поля в BookingDTO (hotelId, hotelName, roomName, guests, totalPrice)
-3. Создать bookingId endpoint для отзывов
-
-### 🟡 Средний приоритет
-4. Добавить поле `type` в HotelDTO (сейчас определяется из описания)
-5. Добавить `reviewsCount` в HotelDTO
-6. UI placeholders для изображений
-
-### 🟢 Низкий приоритет
-7. Уведомления API
-8. Cleanup deprecated icons
-9. Pull-to-refresh
+### Текущие задачи
+- [ ] **Создание отзыва** — POST `/reviews` требует `bookingId`, недоступный клиенту
+- [ ] **Уведомления API** — нет эндпоинтов `/notifications/*`
+- [ ] **UI placeholders** для изображений при загрузке
+- [ ] **Deprecated icons** — заменить `Icons.Default.ArrowBack` → `Icons.AutoMirrored.Filled.ArrowBack`
+- [ ] **Deprecated Locale** — убрать `constructor(p0: String!): Locale`
+- [ ] **Pull-to-refresh** на HomeScreen
 
 ---
 
@@ -343,16 +219,4 @@ val imageUrl = ServerConfig.getImageUrl(dto.photoUrls?.firstOrNull())
 
 - **EncryptedSharedPreferences** — хранение токена и данных пользователя
 - **usesCleartextTraffic = true** — временно для разработки (будет отключено в production)
-- **Пароли** — хранятся в plaintext на сервере (будет хеширование)
-
----
-
-## Полезные ссылки
-
-- [project.md](project.md) — Полная спецификация приложения
-- [USER_FLOW.md](USER_FLOW.md) — Пользовательские сценарии
-- [SEARCH_FEATURE.md](SEARCH_FEATURE.md) — Документация системы поиска
-- [API_ROUTES.md](API_ROUTES.md) — Документация backend API
-- [SERVER_AUTH.md](SERVER_AUTH.md) — Документация авторизации
-- [TODO.md](TODO.md) — Список задач
-- [LOG.md](LOG.md) — Лог изменений
+- Пароли на сервере хранятся в plaintext (требуется хеширование)

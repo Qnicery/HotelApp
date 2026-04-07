@@ -2,39 +2,87 @@ package com.example.testapp.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.testapp.data.api.model.RoomDTO
 import com.example.testapp.data.model.Booking
 import com.example.testapp.data.model.Room
-import com.example.testapp.data.repository.AppRepository
+import com.example.testapp.data.repository.AuthApiRepository
+import com.example.testapp.data.repository.BookingRepository
+import com.example.testapp.data.repository.HotelsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
 /**
  * ViewModel для экрана бронирования
- * Использует общий AppRepository через синглтон
+ * Использует BookingRepository для работы с API
  */
 class BookingViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = AppRepository.getInstance(application)
+    private val bookingRepository = BookingRepository.getInstance(application)
+    private val hotelsRepository = HotelsRepository.getInstance(application)
+    private val authApiRepository = AuthApiRepository.getInstance(application)
 
     private val _uiState = MutableStateFlow(BookingUiState())
     val uiState: StateFlow<BookingUiState> = _uiState.asStateFlow()
 
-    fun loadRoom(roomId: Int) {
-        val room = repository.getRoomById(roomId)
-        if (room != null) {
-            _uiState.value = _uiState.value.copy(
-                room = room,
-                isLoading = false
-            )
-        } else {
-            _uiState.value = _uiState.value.copy(
-                isLoading = false,
-                error = "Номер не найден"
-            )
+    fun loadRoom(hotelId: Int, roomId: Int, checkInDate: String? = null, checkOutDate: String? = null, guests: Int? = null) {
+        _uiState.value = _uiState.value.copy(isLoading = true)
+
+        viewModelScope.launch {
+            val result = hotelsRepository.getRoomsByHotelId(hotelId)
+            if (result.isSuccess) {
+                val roomDTOs = result.getOrNull() ?: emptyList()
+                val roomDTO = roomDTOs.find { it.id == roomId }
+
+                if (roomDTO != null) {
+                    val room = mapRoomDtoToRoom(roomDTO)
+                    val maxGuests = room.maxGuests
+                    val initialGuests = guests?.coerceIn(1, maxGuests) ?: 2
+
+                    _uiState.value = _uiState.value.copy(
+                        room = room,
+                        checkInDate = checkInDate,
+                        checkOutDate = checkOutDate,
+                        guests = initialGuests,
+                        isLoading = false
+                    )
+                    if (checkInDate != null && checkOutDate != null) {
+                        calculateTotal()
+                    }
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "Номер не найден"
+                    )
+                }
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Ошибка загрузки данных номера"
+                )
+            }
         }
+    }
+
+    /**
+     * Конвертация RoomDTO (сервер) → Room (приложение)
+     */
+    private fun mapRoomDtoToRoom(dto: RoomDTO): Room {
+        return Room(
+            id = dto.id,
+            hotelId = dto.hotelId,
+            name = dto.roomName,
+            description = dto.description ?: "",
+            imageUrl = dto.photoUrls?.firstOrNull() ?: "",
+            pricePerNight = dto.price,
+            maxGuests = dto.maxGuests,
+            amenities = emptyList(),
+            isAvailable = dto.status.equals("available", ignoreCase = true)
+        )
     }
 
     fun updateCheckInDate(date: String) {
@@ -121,26 +169,76 @@ class BookingViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun createBooking(): Result<Booking> {
+    fun createBooking() {
         val state = _uiState.value
-        val room = state.room ?: return Result.failure(Exception("Номер не выбран"))
-        val checkInDate = state.checkInDate ?: return Result.failure(Exception("Дата заезда не выбрана"))
-        val checkOutDate = state.checkOutDate ?: return Result.failure(Exception("Дата выезда не выбрана"))
+        val room = state.room ?: return
+        val checkInDate = state.checkInDate ?: return
+        val checkOutDate = state.checkOutDate ?: return
         val guests = state.guests
+        val totalPrice = state.totalPrice
 
-        val currentUser = repository.getCurrentUser()
-            ?: return Result.failure(Exception("Пользователь не авторизован"))
+        val currentUser = authApiRepository.getCurrentUser()
+            ?: run {
+                _uiState.value = state.copy(error = "Пользователь не авторизован")
+                return
+            }
 
-        return repository.createBooking(
-            roomId = room.id,
-            userId = currentUser.id,
-            dateFrom = checkInDate,
-            dateTo = checkOutDate,
-            guests = guests
-        ).onSuccess {
-            _uiState.value = state.copy(bookingSuccess = true)
-        }.onFailure {
-            _uiState.value = state.copy(error = it.message)
+        // Форматируем даты в ISO-8601 с временем заезда/выезда
+        val dateFrom = "${checkInDate}T14:00:00Z"
+        val dateTo = "${checkOutDate}T12:00:00Z"
+
+        _uiState.value = state.copy(isLoading = true)
+
+        viewModelScope.launch {
+            // Сначала проверяем доступность комнаты
+            val availabilityResult = bookingRepository.checkRoomAvailability(room.id, dateFrom, dateTo)
+
+            if (availabilityResult.isFailure) {
+                _uiState.value = state.copy(
+                    error = availabilityResult.exceptionOrNull()?.message ?: "Ошибка проверки доступности",
+                    isLoading = false
+                )
+                return@launch
+            }
+
+            val availability = availabilityResult.getOrNull()
+            if (availability == null) {
+                _uiState.value = state.copy(
+                    error = "Не удалось проверить доступность комнаты",
+                    isLoading = false
+                )
+                return@launch
+            }
+
+            if (!availability.isAvailable) {
+                val conflictingIds = availability.conflictingBookings.map { it.bookingId }
+                _uiState.value = state.copy(
+                    error = "Выбранные даты заняты (бронирования: ${conflictingIds.joinToString(", ")}). Выберите другие даты.",
+                    isLoading = false
+                )
+                return@launch
+            }
+
+            // Комната доступна — создаём бронирование
+            bookingRepository.createBooking(
+                userId = currentUser.id,
+                roomId = room.id,
+                dateFrom = dateFrom,
+                dateTo = dateTo,
+                guests = guests,
+                totalPrice = totalPrice
+            ).onSuccess { booking ->
+                _uiState.value = state.copy(
+                    bookingSuccess = true,
+                    isLoading = false,
+                    createdBooking = booking
+                )
+            }.onFailure { error ->
+                _uiState.value = state.copy(
+                    error = error.message ?: "Ошибка при создании бронирования",
+                    isLoading = false
+                )
+            }
         }
     }
 
@@ -162,5 +260,6 @@ data class BookingUiState(
     val totalPrice: Double = 0.0,
     val isLoading: Boolean = true,
     val bookingSuccess: Boolean = false,
+    val createdBooking: Booking? = null,
     val error: String? = null
 )

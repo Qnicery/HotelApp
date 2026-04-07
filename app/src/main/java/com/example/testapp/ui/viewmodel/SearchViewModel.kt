@@ -2,22 +2,24 @@ package com.example.testapp.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.testapp.data.model.Hotel
 import com.example.testapp.data.model.HotelType
 import com.example.testapp.data.model.SearchParams
 import com.example.testapp.data.model.SortOption
-import com.example.testapp.data.repository.AppRepository
+import com.example.testapp.data.repository.HotelsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 /**
  * ViewModel для экрана поиска и результатов
- * Использует общий AppRepository через синглтон
+ * Использует HotelsRepository для работы с API
  */
 class SearchViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = AppRepository.getInstance(application)
+    private val hotelsRepository = HotelsRepository.getInstance(application)
 
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
@@ -27,20 +29,33 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun loadInitialData() {
-        val cities = repository.getAllCities()
-        val amenities = repository.getAllAmenities()
-        val priceRange = repository.getPriceRange()
+        viewModelScope.launch {
+            // Загружаем города
+            hotelsRepository.getCities().onSuccess { cities ->
+                _uiState.value = _uiState.value.copy(
+                    availableCities = cities.map { it.name }
+                )
+            }
 
-        _uiState.value = _uiState.value.copy(
-            availableCities = cities,
-            availableAmenities = amenities,
-            minPrice = priceRange.start.toInt(),
-            maxPrice = priceRange.endInclusive.toInt(),
-            priceRangeStart = priceRange.start.toInt(),
-            priceRangeEnd = priceRange.endInclusive.toInt()
-        )
+            // Загружаем удобства
+            hotelsRepository.getAllAmenities().onSuccess { amenities ->
+                _uiState.value = _uiState.value.copy(
+                    availableAmenities = amenities
+                )
+            }
 
-        performSearch()
+            // Загружаем отели для диапазона цен
+            hotelsRepository.getAllHotels().onSuccess { hotels ->
+                val minPrice = hotels.minOfOrNull { it.priceFrom }?.toInt() ?: 0
+                val maxPrice = hotels.maxOfOrNull { it.priceFrom }?.toInt() ?: 0
+                _uiState.value = _uiState.value.copy(
+                    minPrice = minPrice,
+                    maxPrice = maxPrice,
+                    priceRangeStart = minPrice,
+                    priceRangeEnd = maxPrice
+                )
+            }
+        }
     }
 
     fun selectCity(city: String?) {
@@ -157,34 +172,82 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     fun performSearch() {
         val state = _uiState.value
 
+        // Если диапазон цен ещё не загружен (оба 0), не применяем фильтр по цене
+        val priceMin = if (state.priceRangeStart == 0 && state.priceRangeEnd == 0) null else state.priceRangeStart.toDouble()
+        val priceMax = if (state.priceRangeStart == 0 && state.priceRangeEnd == 0) null else state.priceRangeEnd.toDouble()
+
         val params = SearchParams(
             city = state.selectedCity,
             checkInDate = state.checkInDate,
             checkOutDate = state.checkOutDate,
             guests = state.guests,
-            priceMin = state.priceRangeStart.toDouble(),
-            priceMax = state.priceRangeEnd.toDouble(),
+            priceMin = priceMin,
+            priceMax = priceMax,
             hotelTypes = state.selectedHotelTypes,
             minRating = state.minRating,
             minStars = state.minStars,
             amenities = state.selectedAmenities
         )
 
-        _uiState.value = state.copy(isLoading = true)
+        _uiState.value = state.copy(isLoading = true, error = null)
 
-        val results = repository.searchHotelsWithSort(params, state.currentSortOption)
+        viewModelScope.launch {
+            hotelsRepository.searchHotelsWithSort(params, state.currentSortOption)
+                .onSuccess { results ->
+                    // Фильтруем удобства — показываем только те, что есть в результатах поиска
+                    val amenitiesInResults = results
+                        .flatMap { it.amenities }
+                        .distinct()
+                        .sorted()
 
-        _uiState.value = state.copy(
-            searchResults = results,
-            isLoading = false,
-            hasSearched = true,
-            showFilters = false
-        )
+                    _uiState.value = _uiState.value.copy(
+                        searchResults = results,
+                        availableAmenities = if (_uiState.value.selectedAmenities.isEmpty()) amenitiesInResults else _uiState.value.availableAmenities,
+                        isLoading = false,
+                        hasSearched = true,
+                        showFilters = false
+                    )
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        searchResults = emptyList(),
+                        isLoading = false,
+                        hasSearched = true,
+                        showFilters = false,
+                        error = error.message ?: "Ошибка поиска"
+                    )
+                }
+        }
     }
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
+
+    /**
+     * Инициализировать параметры поиска из навигации
+     * Вызывается один раз при открытии SearchResultsScreen
+     */
+    fun initSearchParams(
+        city: String?,
+        checkInDate: String?,
+        checkOutDate: String?,
+        guests: Int?
+    ) {
+        val state = _uiState.value
+        _uiState.value = state.copy(
+            selectedCity = city,
+            checkInDate = checkInDate,
+            checkOutDate = checkOutDate,
+            guests = guests ?: state.guests
+        )
+    }
+
+    /**
+     * Проверить, что начальные данные загружены
+     */
+    val isDataReady: Boolean
+        get() = _uiState.value.availableCities.isNotEmpty() || _uiState.value.maxPrice > 0
 }
 
 data class SearchUiState(

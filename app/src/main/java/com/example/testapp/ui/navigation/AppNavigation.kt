@@ -128,30 +128,53 @@ fun AppNavigation(
                 onNavigateBack = {
                     navController.popBackStack()
                 },
-                onNavigateToResults = {
-                    navController.navigate(Screen.SearchResults.route)
-                }
-            )
-        }
-
-        composable(Screen.SearchResults.route) {
-            com.example.testapp.ui.screens.SearchResultsScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                },
-                onNavigateToHotelDetails = { hotelId ->
-                    navController.navigate(Screen.HotelDetails.createRoute(hotelId))
+                onNavigateToResults = { city, checkIn, checkOut, guests ->
+                    val cityEncoded = city ?: ""
+                    navController.navigate("${Screen.SearchResults.route}?city=${cityEncoded}&checkIn=${checkIn ?: ""}&checkOut=${checkOut ?: ""}&guests=${guests ?: ""}")
                 }
             )
         }
 
         composable(
-            route = Screen.HotelDetails.route,
+            route = "${Screen.SearchResults.route}?city={city}&checkIn={checkIn}&checkOut={checkOut}&guests={guests}",
             arguments = listOf(
-                navArgument("hotelId") { type = NavType.IntType }
+                navArgument("city") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("checkIn") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("checkOut") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("guests") { type = NavType.StringType; nullable = true; defaultValue = null }
+            )
+        ) { backStackEntry ->
+            val city = backStackEntry.arguments?.getString("city")?.takeIf { it.isNotBlank() }
+            val checkIn = backStackEntry.arguments?.getString("checkIn")?.takeIf { it.isNotBlank() }
+            val checkOut = backStackEntry.arguments?.getString("checkOut")?.takeIf { it.isNotBlank() }
+            val guests = backStackEntry.arguments?.getString("guests")?.toIntOrNull()
+            com.example.testapp.ui.screens.SearchResultsScreen(
+                selectedCity = city,
+                checkInDate = checkIn,
+                checkOutDate = checkOut,
+                guests = guests,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToHotelDetails = { hotelId, ci, co, g ->
+                    navController.navigate("${Screen.HotelDetails.createRoute(hotelId)}?checkIn=${ci ?: ""}&checkOut=${co ?: ""}&guests=${g ?: ""}")
+                }
+            )
+        }
+
+        composable(
+            route = "${Screen.HotelDetails.route}?checkIn={checkIn}&checkOut={checkOut}&guests={guests}",
+            arguments = listOf(
+                navArgument("hotelId") { type = NavType.IntType },
+                navArgument("checkIn") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("checkOut") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("guests") { type = NavType.StringType; nullable = true; defaultValue = null }
             )
         ) { backStackEntry ->
             val hotelId = backStackEntry.arguments?.getInt("hotelId") ?: return@composable
+            val checkIn = backStackEntry.arguments?.getString("checkIn")?.takeIf { it.isNotBlank() }
+            val checkOut = backStackEntry.arguments?.getString("checkOut")?.takeIf { it.isNotBlank() }
+            val guests = backStackEntry.arguments?.getString("guests")?.toIntOrNull()
             com.example.testapp.ui.screens.HotelDetailsScreen(
                 hotelId = hotelId,
                 onNavigateBack = {
@@ -161,28 +184,37 @@ fun AppNavigation(
                     navController.navigate(Screen.Reviews.createRoute(hotelId))
                 },
                 onNavigateToRooms = {
-                    navController.navigate(Screen.RoomsList.createRoute(hotelId))
+                    navController.navigate("${Screen.RoomsList.createRoute(hotelId)}?checkIn=${checkIn ?: ""}&checkOut=${checkOut ?: ""}&guests=${guests ?: ""}")
                 },
-                onNavigateToBooking = { roomId ->
-                    navController.navigate(Screen.Booking.createRoute(roomId))
+                onNavigateToBooking = { hotelId, roomId, ci, co, g ->
+                    navController.navigate(Screen.Booking.createRoute(hotelId, roomId, ci ?: checkIn, co ?: checkOut, g ?: guests))
                 }
             )
         }
 
         composable(
-            route = Screen.RoomsList.route,
+            route = "${Screen.RoomsList.route}?checkIn={checkIn}&checkOut={checkOut}&guests={guests}",
             arguments = listOf(
-                navArgument("hotelId") { type = NavType.IntType }
+                navArgument("hotelId") { type = NavType.IntType },
+                navArgument("checkIn") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("checkOut") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("guests") { type = NavType.StringType; nullable = true; defaultValue = null }
             )
         ) { backStackEntry ->
             val hotelId = backStackEntry.arguments?.getInt("hotelId") ?: return@composable
+            val checkIn = backStackEntry.arguments?.getString("checkIn")?.takeIf { it.isNotBlank() }
+            val checkOut = backStackEntry.arguments?.getString("checkOut")?.takeIf { it.isNotBlank() }
+            val guests = backStackEntry.arguments?.getString("guests")?.toIntOrNull()
             com.example.testapp.ui.screens.RoomsListScreen(
                 hotelId = hotelId,
+                checkInDate = checkIn,
+                checkOutDate = checkOut,
+                guests = guests,
                 onNavigateBack = {
                     navController.popBackStack()
                 },
-                onNavigateToBooking = { roomId ->
-                    navController.navigate(Screen.Booking.createRoute(roomId))
+                onNavigateToBooking = { hId, roomId, ci, co, g ->
+                    navController.navigate(Screen.Booking.createRoute(hId, roomId, ci ?: checkIn, co ?: checkOut, g ?: guests))
                 }
             )
         }
@@ -190,12 +222,24 @@ fun AppNavigation(
         composable(
             route = Screen.Booking.route,
             arguments = listOf(
-                navArgument("roomId") { type = NavType.IntType }
+                navArgument("hotelId") { type = NavType.IntType },
+                navArgument("roomId") { type = NavType.IntType },
+                navArgument("checkIn") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("checkOut") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("guests") { type = NavType.StringType; nullable = true; defaultValue = null }
             )
         ) { backStackEntry ->
+            val hotelId = backStackEntry.arguments?.getInt("hotelId") ?: return@composable
             val roomId = backStackEntry.arguments?.getInt("roomId") ?: return@composable
+            val checkIn = backStackEntry.arguments?.getString("checkIn")?.takeIf { it.isNotBlank() }
+            val checkOut = backStackEntry.arguments?.getString("checkOut")?.takeIf { it.isNotBlank() }
+            val guests = backStackEntry.arguments?.getString("guests")?.toIntOrNull()
             com.example.testapp.ui.screens.BookingScreen(
+                hotelId = hotelId,
                 roomId = roomId,
+                checkInDate = checkIn,
+                checkOutDate = checkOut,
+                guests = guests,
                 onNavigateBack = {
                     navController.popBackStack()
                 },

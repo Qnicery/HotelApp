@@ -62,7 +62,7 @@ import java.util.Locale
 @Composable
 fun SearchScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToResults: () -> Unit,
+    onNavigateToResults: (city: String?, checkIn: String?, checkOut: String?, guests: Int?) -> Unit,
     viewModel: SearchViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -141,7 +141,14 @@ fun SearchScreen(
 
             // Даты
             OutlinedTextField(
-                value = dateRangeText,
+                value = if (uiState.checkInDate != null && uiState.checkOutDate != null) {
+                    formatDateRange(
+                        LocalDate.parse(uiState.checkInDate!!),
+                        LocalDate.parse(uiState.checkOutDate!!)
+                    )
+                } else {
+                    dateRangeText
+                },
                 onValueChange = { },
                 readOnly = true,
                 label = { Text("Даты") },
@@ -175,15 +182,20 @@ fun SearchScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Кнопка поиска
+            val isSearchEnabled = uiState.selectedCity != null &&
+                    uiState.checkInDate != null &&
+                    uiState.checkOutDate != null
+
             Button(
                 onClick = {
-                    viewModel.performSearch()
-                    onNavigateToResults()
+                    //viewModel.performSearch()
+                    onNavigateToResults(uiState.selectedCity, uiState.checkInDate, uiState.checkOutDate, uiState.guests)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.dp),
+                enabled = isSearchEnabled
             ) {
                 Icon(
                     imageVector = Icons.Default.Search,
@@ -195,6 +207,15 @@ fun SearchScreen(
                     text = "Найти отели",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium
+                )
+            }
+
+            // Подсказка если не все поля заполнены
+            if (!isSearchEnabled) {
+                Text(
+                    text = "Заполните все поля для поиска",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -245,6 +266,8 @@ fun SearchScreen(
                                         tempStartDate!!,
                                         tempEndDate!!
                                     )
+                                    viewModel.setCheckInDate(tempStartDate!!.toString())
+                                    viewModel.setCheckOutDate(tempEndDate!!.toString())
                                 }
                                 showDialog = false
                             },

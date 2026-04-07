@@ -1,70 +1,42 @@
 package com.example.testapp.data.repository
 
 import android.content.Context
-import com.example.testapp.data.api.RetrofitClient
+import com.example.testapp.data.api.BookingApiService
 import com.example.testapp.data.api.BookingStatusUpdateRequest
+import com.example.testapp.data.api.RetrofitClient
+import com.example.testapp.data.api.model.AvailabilityResponse
+import com.example.testapp.data.api.model.BookingCreateRequest
 import com.example.testapp.data.api.model.BookingResponse
 import com.example.testapp.data.model.Booking
 import com.example.testapp.data.model.BookingStatus
-import com.example.testapp.data.model.User
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
 
 /**
- * Репозиторий для работы с профилем пользователя
- * Инкапсулирует работу с API: пользователь, бронирования
+ * Репозиторий для работы с бронированиями через API
  *
  * Архитектура:
- * ProfileScreen → ProfileViewModel → ProfileRepository → API
+ * BookingViewModel → BookingRepository → BookingApiService → Backend
  */
-class ProfileRepository private constructor(context: Context) {
+class BookingRepository private constructor(context: Context) {
 
-    private val authApiRepository = AuthApiRepository.getInstance(context)
-    private val bookingApi = RetrofitClient.bookingApi
+    private val bookingApi: BookingApiService = RetrofitClient.bookingApi
     private val hotelsRepository = HotelsRepository.getInstance(context)
 
     companion object {
         @Volatile
-        private var instance: ProfileRepository? = null
+        private var instance: BookingRepository? = null
 
-        fun getInstance(context: Context): ProfileRepository {
+        fun getInstance(context: Context): BookingRepository {
             return instance ?: synchronized(this) {
-                instance ?: ProfileRepository(context.applicationContext).also { instance = it }
+                instance ?: BookingRepository(context.applicationContext).also { instance = it }
             }
         }
-    }
-
-    // ==================== Пользователь ====================
-
-    /**
-     * Получить текущего пользователя с сервера (GET /me)
-     * Возвращает актуальные данные, обновляет локальный кэш
-     */
-    suspend fun fetchCurrentUser(): Result<User> {
-        return authApiRepository.fetchCurrentUser()
-    }
-
-    /**
-     * Получить локально сохранённого пользователя (без запроса к серверу)
-     */
-    fun getCachedUser(): User? {
-        return authApiRepository.getCurrentUser()
-    }
-
-    /**
-     * Выйти из системы
-     */
-    suspend fun logout(): Result<Unit> {
-        return authApiRepository.logout()
     }
 
     // ==================== Бронирования ====================
 
     /**
-     * Получить бронирования пользователя с сервера
+     * Получить бронирования пользователя
      * GET /bookings/user/{userId}
-     * 
-     * Возвращает список BookingDTO, конвертированный в модель приложения
      */
     suspend fun getBookingsByUserId(userId: Int): Result<List<Booking>> {
         return try {
@@ -72,8 +44,7 @@ class ProfileRepository private constructor(context: Context) {
 
             if (response.isSuccessful) {
                 val bookingResponses = response.body() ?: emptyList()
-                val bookings = bookingResponses.map { mapBookingResponseToBooking(it) }
-                Result.success(bookings)
+                Result.success(bookingResponses.map { mapBookingResponseToBooking(it) })
             } else {
                 Result.failure(Exception("Ошибка сервера: ${response.code()}"))
             }
@@ -83,7 +54,7 @@ class ProfileRepository private constructor(context: Context) {
     }
 
     /**
-     * Получить одно бронирование по ID
+     * Получить бронирование по ID
      * GET /bookings/{id}
      */
     suspend fun getBookingById(bookingId: Int): Result<Booking> {
@@ -120,7 +91,7 @@ class ProfileRepository private constructor(context: Context) {
         totalPrice: Double
     ): Result<Booking> {
         return try {
-            val request = com.example.testapp.data.api.model.BookingCreateRequest(
+            val request = BookingCreateRequest(
                 userId = userId,
                 roomId = roomId,
                 dateFrom = dateFrom,
@@ -139,6 +110,34 @@ class ProfileRepository private constructor(context: Context) {
                     Result.failure(Exception("Пустой ответ от сервера"))
                 }
             } else {
+                val errorBody = response.errorBody()?.string()
+                Result.failure(Exception("Ошибка сервера: ${response.code()} - $errorBody"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Ошибка сети: ${e.message}"))
+        }
+    }
+
+    /**
+     * Проверить доступность комнаты по датам
+     * GET /bookings/room/{roomId}/availability?from={date}&to={date}
+     */
+    suspend fun checkRoomAvailability(
+        roomId: Int,
+        dateFrom: String,
+        dateTo: String
+    ): Result<AvailabilityResponse> {
+        return try {
+            val response = bookingApi.checkRoomAvailability(roomId, dateFrom, dateTo)
+
+            if (response.isSuccessful) {
+                val availability = response.body()
+                if (availability != null) {
+                    Result.success(availability)
+                } else {
+                    Result.failure(Exception("Пустой ответ от сервера"))
+                }
+            } else {
                 Result.failure(Exception("Ошибка сервера: ${response.code()}"))
             }
         } catch (e: Exception) {
@@ -149,7 +148,6 @@ class ProfileRepository private constructor(context: Context) {
     /**
      * Отменить бронирование
      * PUT /bookings/{id}/status
-     * { "status": "Canceled" }
      */
     suspend fun cancelBooking(bookingId: Int): Result<Booking> {
         return try {
@@ -177,22 +175,8 @@ class ProfileRepository private constructor(context: Context) {
 
     /**
      * Конвертация BookingResponse (сервер) → Booking (приложение)
-     *
-     * Сервер возвращает:
-     * { id, userId, roomId, hotelId, dateFrom, dateTo, guests, totalPrice, status, createdAt }
-     *
-     * Приложение ожидает:
-     * { id, roomId, hotelId, hotelName, roomName, userId, dateFrom, dateTo, guests, totalPrice, status, createdAt }
-     *
-     * hotelName и roomName загружаются через API по ID
      */
     private suspend fun mapBookingResponseToBooking(response: BookingResponse): Booking {
-        // Преобразуем ISO-8601 timestamp в читаемую дату
-        val dateFromFormatted = formatTimestamp(response.dateFrom, "yyyy-MM-dd")
-        val dateToFormatted = formatTimestamp(response.dateTo, "yyyy-MM-dd")
-        val createdAtFormatted = formatTimestamp(response.createdAt, "yyyy-MM-dd HH:mm")
-
-        // Маппинг статуса сервера → статус приложения
         val status = when (response.status.lowercase()) {
             "active" -> BookingStatus.ACTIVE
             "canceled" -> BookingStatus.CANCELLED
@@ -228,25 +212,12 @@ class ProfileRepository private constructor(context: Context) {
             hotelName = hotelName,
             roomName = roomName,
             userId = response.userId,
-            dateFrom = dateFromFormatted,
-            dateTo = dateToFormatted,
+            dateFrom = response.dateFrom,
+            dateTo = response.dateTo,
             guests = response.guests,
             totalPrice = response.totalPrice,
             status = status,
-            createdAt = createdAtFormatted
+            createdAt = response.createdAt
         )
-    }
-
-    /**
-     * Форматирование ISO-8601 timestamp
-     */
-    private fun formatTimestamp(timestamp: String, pattern: String): String {
-        return try {
-            val offsetDateTime = OffsetDateTime.parse(timestamp)
-            offsetDateTime.format(DateTimeFormatter.ofPattern(pattern))
-        } catch (e: Exception) {
-            // Если не удалось распарсить, возвращаем как есть
-            timestamp
-        }
     }
 }

@@ -21,8 +21,12 @@ sealed class Screen(val route: String) {
     object RoomsList : Screen("rooms_list/{hotelId}") {
         fun createRoute(hotelId: Int) = "rooms_list/$hotelId"
     }
-    object Booking : Screen("booking/{roomId}") {
-        fun createRoute(roomId: Int) = "booking/$roomId"
+    object Booking : Screen("booking/{hotelId}/{roomId}?checkIn={checkIn}&checkOut={checkOut}&guests={guests}") {
+        fun createRoute(hotelId: Int, roomId: Int, checkIn: String? = null, checkOut: String? = null, guests: Int? = null) =
+            "booking/$hotelId/$roomId" +
+                "?checkIn=${checkIn ?: ""}" +
+                "&checkOut=${checkOut ?: ""}" +
+                "&guests=${guests ?: ""}"
     }
     object Profile : Screen("profile")
     object BookingHistory : Screen("booking_history")

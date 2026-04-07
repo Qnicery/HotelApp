@@ -49,8 +49,11 @@ import java.util.concurrent.TimeUnit
 @Composable
 fun RoomsListScreen(
     hotelId: Int,
+    checkInDate: String? = null,
+    checkOutDate: String? = null,
+    guests: Int? = null,
     onNavigateBack: () -> Unit,
-    onNavigateToBooking: (Int) -> Unit,
+    onNavigateToBooking: (hotelId: Int, roomId: Int, checkIn: String?, checkOut: String?, guests: Int?) -> Unit,
     viewModel: HotelDetailsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -123,7 +126,7 @@ fun RoomsListScreen(
                     RoomCard(
                         room = room,
                         imageLoader = imageLoader,
-                        onClick = { onNavigateToBooking(room.id) }
+                        onClick = { onNavigateToBooking(hotelId, room.id, checkInDate, checkOutDate, guests) }
                     )
                 }
             }

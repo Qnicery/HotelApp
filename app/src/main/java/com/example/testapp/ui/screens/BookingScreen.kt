@@ -13,31 +13,39 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.testapp.ui.components.DateRangePickerDialog
+import com.example.testapp.ui.components.SimpleRangeDatePicker
 import com.example.testapp.ui.viewmodel.BookingViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingScreen(
+    hotelId: Int,
     roomId: Int,
+    checkInDate: String? = null,
+    checkOutDate: String? = null,
+    guests: Int? = null,
     onNavigateBack: () -> Unit,
     onBookingSuccess: () -> Unit,
     viewModel: BookingViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var showCheckInPicker by remember { mutableStateOf(false) }
-    var showCheckOutPicker by remember { mutableStateOf(false) }
+    var showDateRangePicker by remember { mutableStateOf(false) }
 
-    LaunchedEffect(roomId) {
-        viewModel.loadRoom(roomId)
+    var tempStartDate by remember { mutableStateOf<LocalDate?>(null) }
+    var tempEndDate by remember { mutableStateOf<LocalDate?>(null) }
+
+    LaunchedEffect(hotelId, roomId) {
+        viewModel.loadRoom(hotelId, roomId, checkInDate, checkOutDate, guests)
     }
 
     LaunchedEffect(uiState.bookingSuccess) {
-        if (uiState.bookingSuccess) {
-            onBookingSuccess()
-        }
+        if (uiState.bookingSuccess) onBookingSuccess()
     }
 
     Scaffold(
@@ -100,59 +108,45 @@ fun BookingScreen(
                         }
                     }
 
-                    // Дата заезда
+                    // Диапазон дат — единое поле как на экране поиска
                     Text(
-                        text = "Дата заезда",
+                        text = "Даты проживания",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
                     )
 
                     OutlinedTextField(
-                        value = uiState.checkInDate ?: "",
+                        value = if (uiState.checkInDate != null && uiState.checkOutDate != null) {
+                            formatDateRangeDisplay(
+                                LocalDate.parse(uiState.checkInDate!!),
+                                LocalDate.parse(uiState.checkOutDate!!)
+                            )
+                        } else {
+                            ""
+                        },
                         onValueChange = {},
-                        label = { Text("Выберите дату заезда") },
+                        readOnly = true,
+                        label = { Text("Заезд — Выезд") },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Выберите даты заезда и выезда") },
                         leadingIcon = {
                             Icon(Icons.Default.CalendarToday, contentDescription = null)
                         },
-                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
-                        readOnly = true,
-                        placeholder = { Text("ГГГГ-ММ-ДД") },
+                        isError = uiState.checkInDate != null && uiState.checkOutDate == null,
                         trailingIcon = {
-                            IconButton(onClick = { showCheckInPicker = true }) {
-                                Icon(Icons.Default.Event, contentDescription = "Выбрать дату")
+                            IconButton(onClick = { showDateRangePicker = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Event,
+                                    contentDescription = "Выбрать даты",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                             }
                         }
                     )
 
-                    // Дата выезда
-                    Text(
-                        text = "Дата выезда",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-
-                    OutlinedTextField(
-                        value = uiState.checkOutDate ?: "",
-                        onValueChange = {},
-                        label = { Text("Выберите дату выезда") },
-                        leadingIcon = {
-                            Icon(Icons.Default.CalendarToday, contentDescription = null)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true,
-                        readOnly = true,
-                        placeholder = { Text("ГГГГ-ММ-ДД") },
-                        trailingIcon = {
-                            IconButton(onClick = { showCheckOutPicker = true }) {
-                                Icon(Icons.Default.Event, contentDescription = "Выбрать дату")
-                            }
-                        }
-                    )
-
-                    // Количество гостей
+                    // Количество гостей — dropdown
                     Text(
                         text = "Количество гостей",
                         fontSize = 16.sp,
@@ -210,6 +204,13 @@ fun BookingScreen(
                                 modifier = Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
+                                // Период
+                                Text(
+                                    text = "Период: ${formatDateRangeDisplay(LocalDate.parse(uiState.checkInDate!!), LocalDate.parse(uiState.checkOutDate!!))}",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
@@ -281,9 +282,7 @@ fun BookingScreen(
 
                     // Кнопка подтверждения
                     Button(
-                        onClick = {
-                            viewModel.createBooking()
-                        },
+                        onClick = { viewModel.createBooking() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -298,57 +297,73 @@ fun BookingScreen(
                     }
                 }
 
-                // DatePicker для заезда
-                if (showCheckInPicker) {
-                    DatePickerDialog(
-                        onDismissRequest = { showCheckInPicker = false },
-                        confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    val date = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-                                    viewModel.updateCheckInDate(date)
-                                    showCheckInPicker = false
+                // Material3 DateRangePicker Dialog
+                if (showDateRangePicker) {
+                    Dialog(onDismissRequest = { showDateRangePicker = false }) {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onPrimary)
+                        ) {
+                            Column {
+                                SimpleRangeDatePicker(
+                                    selectedStart = null,
+                                    selectedEnd = null,
+                                    onRangeSelected = { start, end ->
+                                        tempStartDate = start
+                                        tempEndDate = end
+                                    }
+                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    TextButton(
+                                        onClick = {
+                                            if (tempStartDate != null && tempEndDate != null) {
+                                                viewModel.updateCheckInDate(tempStartDate!!.toString())
+                                                viewModel.updateCheckOutDate(tempEndDate!!.toString())
+                                            }
+                                            showDateRangePicker = false
+                                        },
+                                        enabled = tempStartDate != null && tempEndDate != null
+                                    ) {
+                                        Text("Ок")
+                                    }
+                                    TextButton(onClick = { showDateRangePicker = false }) {
+                                        Text("Отмена")
+                                    }
                                 }
-                            ) {
-                                Text("OK")
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showCheckInPicker = false }) {
-                                Text("Отмена")
                             }
                         }
-                    ) {
-                        Text("Выберите дату заезда")
-                    }
-                }
-
-                // DatePicker для выезда
-                if (showCheckOutPicker) {
-                    DatePickerDialog(
-                        onDismissRequest = { showCheckOutPicker = false },
-                        confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    val date = LocalDate.now().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE)
-                                    viewModel.updateCheckOutDate(date)
-                                    showCheckOutPicker = false
-                                }
-                            ) {
-                                Text("OK")
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showCheckOutPicker = false }) {
-                                Text("Отмена")
-                            }
-                        }
-                    ) {
-                        Text("Выберите дату выезда")
                     }
                 }
             }
         }
+    }
+}
+
+/**
+ * Форматирование диапазона дат для отображения
+ * Примеры: "03 - 11 апр" или "01 апр - 03 мая"
+ */
+private fun buildDateRangeDisplay(checkIn: String?, checkOut: String?): String {
+    if (checkIn == null || checkOut == null) return ""
+    return formatDateRangeDisplay( LocalDate.parse(checkIn), LocalDate.parse(checkOut))
+}
+
+private fun formatDateRangeDisplay(start: LocalDate, end: LocalDate): String {
+    return try {
+        val dayFormatter = DateTimeFormatter.ofPattern("dd")
+        val monthFormatter = DateTimeFormatter.ofPattern("MMM", Locale("ru"))
+
+        if (start.month == end.month) {
+            "${start.format(dayFormatter)} - ${end.format(dayFormatter)} ${end.format(monthFormatter)}"
+        } else {
+            "${start.format(dayFormatter)} ${start.format(monthFormatter)} - " +
+                    "${end.format(dayFormatter)} ${end.format(monthFormatter)}"
+        }
+    } catch (e: Exception) {
+        "$start - $end"
     }
 }
 

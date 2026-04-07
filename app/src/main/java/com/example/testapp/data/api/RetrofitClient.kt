@@ -47,4 +47,5 @@ object RetrofitClient {
     val bookingApi: BookingApiService = retrofit.create(BookingApiService::class.java)
     val hotelsApi: HotelsApiService = retrofit.create(HotelsApiService::class.java)
     val reviewsApi: ReviewsApiService = retrofit.create(ReviewsApiService::class.java)
+    val amenitiesApi: AmenitiesApiService = retrofit.create(AmenitiesApiService::class.java)
 }

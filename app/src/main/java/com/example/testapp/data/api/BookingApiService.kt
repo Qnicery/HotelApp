@@ -1,5 +1,6 @@
 package com.example.testapp.data.api
 
+import com.example.testapp.data.api.model.AvailabilityResponse
 import com.example.testapp.data.api.model.BookingCreateRequest
 import com.example.testapp.data.api.model.BookingResponse
 import retrofit2.Response
@@ -9,6 +10,7 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.PUT
+import retrofit2.http.Query
 
 /**
  * API интерфейс для работы с бронированиями
@@ -75,6 +77,20 @@ interface BookingApiService {
         @Path("id") bookingId: Int,
         @Body request: BookingStatusUpdateRequest
     ): Response<BookingResponse>
+
+    /**
+     * Проверить доступность комнаты по датам
+     * GET /bookings/room/{roomId}/availability?from={date}&to={date}
+     *
+     * Response: 200 OK - AvailabilityResponse
+     * Возвращает isAvailable=true или список конфликтующих бронирований
+     */
+    @GET("bookings/room/{roomId}/availability")
+    suspend fun checkRoomAvailability(
+        @Path("roomId") roomId: Int,
+        @Query("from") dateFrom: String,
+        @Query("to") dateTo: String
+    ): Response<AvailabilityResponse>
 }
 
 /**

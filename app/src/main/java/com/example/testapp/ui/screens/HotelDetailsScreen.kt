@@ -43,7 +43,7 @@ fun HotelDetailsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToReviews: () -> Unit,
     onNavigateToRooms: () -> Unit,
-    onNavigateToBooking: (Int) -> Unit,
+    onNavigateToBooking: (hotelId: Int, roomId: Int, checkIn: String?, checkOut: String?, guests: Int?) -> Unit,
     viewModel: HotelDetailsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
