@@ -30,9 +30,11 @@ fun LoginScreen(
 ) {
     val uiState by authViewModel.uiState.collectAsState()
 
-    LaunchedEffect(uiState.isLoggedIn) {
+    LaunchedEffect(uiState.isLoggedIn, uiState.loginSuccess) {
         if (uiState.isLoggedIn && uiState.loginSuccess) {
-            onLoginSuccess(uiState.currentUser?.role)
+            val role = uiState.currentUser?.role
+            onLoginSuccess(role)
+            authViewModel.clearAuthSuccessState()
         }
     }
 
@@ -161,38 +163,6 @@ fun LoginScreen(
                     text = "Нет аккаунта? Зарегистрироваться",
                     fontSize = 16.sp
                 )
-            }
-
-            // Подсказка для тестирования
-            Spacer(modifier = Modifier.height(32.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = "Тестовые аккаунты:",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Пользователь: user@example.com / 123456",
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = "Админ отеля: hotel@admin.com / 123456",
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = "Системный админ: system@admin.com / 123456",
-                        fontSize = 12.sp
-                    )
-                }
             }
         }
     }

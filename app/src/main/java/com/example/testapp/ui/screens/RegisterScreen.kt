@@ -31,9 +31,11 @@ fun RegisterScreen(
 ) {
     val uiState by authViewModel.uiState.collectAsState()
 
-    LaunchedEffect(uiState.isLoggedIn) {
+    LaunchedEffect(uiState.isLoggedIn, uiState.registerSuccess) {
         if (uiState.isLoggedIn && uiState.registerSuccess) {
-            onRegisterSuccess(uiState.currentUser?.role)
+            val role = uiState.currentUser?.role
+            onRegisterSuccess(role)
+            authViewModel.clearAuthSuccessState()
         }
     }
 

@@ -51,8 +51,6 @@ fun AdminPendingRequestsScreen(
     onNavigateBack: () -> Unit,
     viewModel: AdminSystemViewModel = viewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -69,51 +67,17 @@ fun AdminPendingRequestsScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            contentAlignment = Alignment.Center
         ) {
-            items(uiState.pendingRequests) { user ->
-                PendingRequestCard(
-                    user = user,
-                    onApprove = {
-                        viewModel.updateUserRole(user.id, com.example.testapp.data.model.UserRole.HOTEL_ADMIN)
-                    },
-                    onReject = {
-                        // Логика отклонения
-                    }
-                )
-            }
-
-            if (uiState.pendingRequests.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 48.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AdminPanelSettings,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Нет заявок",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
+            Text(
+                text = "Заявки теперь доступны во вкладке 'Заявки' на главной панели администратора",
+                modifier = Modifier.padding(32.dp),
+                style = MaterialTheme.typography.bodyLarge
+            )
         }
     }
 }

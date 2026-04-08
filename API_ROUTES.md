@@ -111,6 +111,34 @@ Authorization: Bearer <token>
 - `404 Not Found` - User not found
 - `500 Internal Server Error` - Server error
 
+### Get All Users
+
+```
+GET /users
+```
+
+**Responses:**
+- `200 OK` - `List<UserResponse>`
+- `500 Internal Server Error` - Server error
+
+**Example Response:**
+```json
+[
+  {
+    "id": 1,
+    "email": "user@example.com",
+    "name": "John Doe",
+    "role": "User"
+  },
+  {
+    "id": 2,
+    "email": "admin@example.com",
+    "name": "Jane Smith",
+    "role": "Admin"
+  }
+]
+```
+
 ### Update User Role
 
 ```
@@ -908,6 +936,36 @@ POST /reviews
 ---
 
 ## Admin Requests
+
+### Get All Admin Requests
+
+```
+GET /admin-requests
+```
+
+**Responses:**
+- `200 OK` - `List<AdminRequestDTO>`
+- `500 Internal Server Error` - Server error
+
+**Example Response:**
+```json
+[
+  {
+    "id": 1,
+    "userId": 1,
+    "text": "Request for admin access",
+    "status": "Pending",
+    "createdAt": "2026-04-01T10:00:00Z"
+  },
+  {
+    "id": 2,
+    "userId": 2,
+    "text": "Need hotel data access",
+    "status": "Approved",
+    "createdAt": "2026-04-02T15:30:00Z"
+  }
+]
+```
 
 ### Get Admin Request by ID
 

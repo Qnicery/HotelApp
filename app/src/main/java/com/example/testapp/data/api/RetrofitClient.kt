@@ -48,4 +48,6 @@ object RetrofitClient {
     val hotelsApi: HotelsApiService = retrofit.create(HotelsApiService::class.java)
     val reviewsApi: ReviewsApiService = retrofit.create(ReviewsApiService::class.java)
     val amenitiesApi: AmenitiesApiService = retrofit.create(AmenitiesApiService::class.java)
+    val usersApi: UsersApiService = retrofit.create(UsersApiService::class.java)
+    val adminRequestsApi: AdminRequestsApiService = retrofit.create(AdminRequestsApiService::class.java)
 }

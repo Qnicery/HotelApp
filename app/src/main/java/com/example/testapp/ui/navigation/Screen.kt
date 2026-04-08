@@ -30,6 +30,7 @@ sealed class Screen(val route: String) {
     }
     object Profile : Screen("profile")
     object BookingHistory : Screen("booking_history")
+    object AdminRequest : Screen("admin_request")
     object Reviews : Screen("reviews/{hotelId}") {
         fun createRoute(hotelId: Int) = "reviews/$hotelId"
     }
@@ -92,6 +93,7 @@ sealed class NavGraph(val startDestination: String) {
             Screen.Booking,
             Screen.Profile,
             Screen.BookingHistory,
+            Screen.AdminRequest,
             Screen.Reviews,
             Screen.Notifications,
             Screen.Settings

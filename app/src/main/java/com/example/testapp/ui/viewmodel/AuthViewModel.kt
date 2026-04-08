@@ -85,6 +85,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                         isLoading = false,
                         isLoggedIn = true,
                         loginSuccess = true,
+                        registerSuccess = false,
                         errorMessage = null,
                         currentUser = user
                     )
@@ -176,10 +177,22 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         registerSuccess = true,
+                        loginSuccess = false,
                         errorMessage = "Регистрация успешна! Теперь войдите в систему."
                     )
                 }
         }
+    }
+
+    /**
+     * Сбросить состояние после успешной авторизации
+     * Вызывается после навигации на главный экран
+     */
+    fun clearAuthSuccessState() {
+        _uiState.value = _uiState.value.copy(
+            loginSuccess = false,
+            registerSuccess = false
+        )
     }
 
     /**

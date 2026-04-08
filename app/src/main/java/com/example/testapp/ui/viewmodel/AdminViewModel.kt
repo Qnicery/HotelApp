@@ -2,24 +2,25 @@ package com.example.testapp.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import com.example.testapp.data.model.Booking
+import androidx.lifecycle.viewModelScope
+import com.example.testapp.data.api.model.AdminRequestDTO
 import com.example.testapp.data.model.Hotel
-import com.example.testapp.data.model.Review
-import com.example.testapp.data.model.Room
 import com.example.testapp.data.model.User
 import com.example.testapp.data.model.UserRole
-import com.example.testapp.data.repository.AppRepository
+import com.example.testapp.data.repository.AdminSystemRepository
+import com.example.testapp.data.repository.HotelsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 /**
  * ViewModel для админ-панели отеля
- * Использует общий AppRepository через синглтон
+ * Использует HotelsRepository для работы с данными
  */
 class AdminHotelViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = AppRepository.getInstance(application)
+    private val repository = HotelsRepository.getInstance(application)
 
     private val _uiState = MutableStateFlow(AdminHotelUiState())
     val uiState: StateFlow<AdminHotelUiState> = _uiState.asStateFlow()
@@ -28,33 +29,16 @@ class AdminHotelViewModel(application: Application) : AndroidViewModel(applicati
         loadHotels()
     }
 
-    fun loadHotels() {
-        val hotels = repository.getHotelsForAdmin()
-        _uiState.value = _uiState.value.copy(hotels = hotels, isLoading = false)
-    }
-
-    fun loadRooms(hotelId: Int) {
-        val rooms = repository.getRoomsForAdmin(hotelId)
-        _uiState.value = _uiState.value.copy(
-            rooms = rooms,
-            selectedHotelId = hotelId,
-            isLoading = false
-        )
-    }
-
-    fun updateRoomAvailability(roomId: Int, isAvailable: Boolean): Result<Unit> {
-        return repository.updateRoomAvailability(roomId, isAvailable)
-            .onSuccess {
-                val state = _uiState.value
-                _uiState.value = state.copy(
-                    rooms = state.rooms.map { room ->
-                        if (room.id == roomId) room.copy(isAvailable = isAvailable) else room
-                    }
-                )
-            }
-            .onFailure { error ->
-                _uiState.value = _uiState.value.copy(error = error.message)
-            }
+    private fun loadHotels() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val result = repository.getAllHotels()
+            _uiState.value = _uiState.value.copy(
+                hotels = if (result.isSuccess) result.getOrNull() ?: emptyList() else emptyList(),
+                isLoading = false,
+                error = if (result.isFailure) result.exceptionOrNull()?.message else null
+            )
+        }
     }
 
     fun clearError() {
@@ -64,9 +48,9 @@ class AdminHotelViewModel(application: Application) : AndroidViewModel(applicati
 
 data class AdminHotelUiState(
     val hotels: List<Hotel> = emptyList(),
-    val rooms: List<Room> = emptyList(),
-    val bookings: List<Booking> = emptyList(),
-    val reviews: List<Review> = emptyList(),
+    val rooms: List<com.example.testapp.data.api.model.RoomDTO> = emptyList(),
+    val bookings: List<com.example.testapp.data.model.Booking> = emptyList(),
+    val reviews: List<com.example.testapp.data.model.Review> = emptyList(),
     val selectedHotelId: Int? = null,
     val isLoading: Boolean = true,
     val error: String? = null
@@ -74,35 +58,108 @@ data class AdminHotelUiState(
 
 /**
  * ViewModel для системного администратора
- * Использует общий AppRepository через синглтон
+ * Использует AdminSystemRepository для работы с реальными данными
  */
 class AdminSystemViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = AppRepository.getInstance(application)
+    private val repository = AdminSystemRepository.getInstance(application)
 
     private val _uiState = MutableStateFlow(AdminSystemUiState())
     val uiState: StateFlow<AdminSystemUiState> = _uiState.asStateFlow()
 
     init {
-        loadUsers()
+        loadData()
     }
 
-    fun loadUsers() {
-        val users = repository.getAllUsers()
-        _uiState.value = _uiState.value.copy(
-            users = users,
-            isLoading = false
-        )
+    /**
+     * Загрузить все данные (пользователи, заявки, отели)
+     */
+    fun loadData() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+            try {
+                // Загружаем данные параллельно
+                val usersResult = repository.getAllUsers()
+                val adminRequestsResult = repository.getAllAdminRequests()
+                val hotelsResult = repository.getAllHotels()
+
+                _uiState.value = _uiState.value.copy(
+                    users = if (usersResult.isSuccess) usersResult.getOrNull() ?: emptyList() else emptyList(),
+                    adminRequests = if (adminRequestsResult.isSuccess) adminRequestsResult.getOrNull() ?: emptyList() else emptyList(),
+                    hotels = if (hotelsResult.isSuccess) hotelsResult.getOrNull() ?: emptyList() else emptyList(),
+                    isLoading = false,
+                    error = when {
+                        usersResult.isFailure -> usersResult.exceptionOrNull()?.message
+                        adminRequestsResult.isFailure -> adminRequestsResult.exceptionOrNull()?.message
+                        hotelsResult.isFailure -> hotelsResult.exceptionOrNull()?.message
+                        else -> null
+                    }
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message
+                )
+            }
+        }
     }
 
-    fun updateUserRole(userId: Int, newRole: UserRole): Result<Unit> {
-        return repository.updateUserRole(userId, newRole)
-            .onSuccess {
-                loadUsers()
+    /**
+     * Обновить статус заявки на администратора
+     */
+    fun updateAdminRequestStatus(requestId: Int, status: String) {
+        viewModelScope.launch {
+            val result = repository.updateAdminRequestStatus(requestId, status)
+            if (result.isSuccess) {
+                // Перезагружаем заявки
+                val adminRequestsResult = repository.getAllAdminRequests()
+                if (adminRequestsResult.isSuccess) {
+                    _uiState.value = _uiState.value.copy(
+                        adminRequests = adminRequestsResult.getOrNull() ?: emptyList()
+                    )
+                }
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    error = result.exceptionOrNull()?.message
+                )
             }
-            .onFailure { error ->
-                _uiState.value = _uiState.value.copy(error = error.message)
+        }
+    }
+
+    /**
+     * Принять заявку - обновить статус И изменить роль пользователя
+     */
+    fun approveAdminRequest(requestId: Int, userId: Int) {
+        viewModelScope.launch {
+            // Сначала обновляем роль пользователя на HOTEL_ADMIN
+            val roleResult = repository.updateUserRole(userId, "Hotel_Admin")
+            
+            if (roleResult.isSuccess) {
+                // Затем обновляем статус заявки
+                val requestResult = repository.updateAdminRequestStatus(requestId, "Approved")
+                
+                if (requestResult.isSuccess) {
+                    // Перезагружаем данные
+                    loadData()
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        error = requestResult.exceptionOrNull()?.message
+                    )
+                }
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    error = roleResult.exceptionOrNull()?.message
+                )
             }
+        }
+    }
+
+    /**
+     * Отклонить заявку
+     */
+    fun rejectAdminRequest(requestId: Int) {
+        updateAdminRequestStatus(requestId, "Rejected")
     }
 
     fun clearError() {
@@ -112,7 +169,8 @@ class AdminSystemViewModel(application: Application) : AndroidViewModel(applicat
 
 data class AdminSystemUiState(
     val users: List<User> = emptyList(),
-    val pendingRequests: List<User> = emptyList(),
+    val adminRequests: List<AdminRequestDTO> = emptyList(),
+    val hotels: List<Hotel> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null
 )

@@ -254,6 +254,9 @@ fun AppNavigation(
                 onNavigateToBookingHistory = {
                     navController.navigate(Screen.BookingHistory.route)
                 },
+                onNavigateToAdminRequest = {
+                    navController.navigate(Screen.AdminRequest.route)
+                },
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
                 },
@@ -285,6 +288,16 @@ fun AppNavigation(
                 },
                 onNavigateToReview = { hotelId ->
                     navController.navigate(Screen.Reviews.createRoute(hotelId))
+                }
+            )
+        }
+
+        composable(Screen.AdminRequest.route) {
+            val currentUserId = authViewModel.currentUser.value?.id ?: 0
+            com.example.testapp.ui.screens.AdminRequestScreen(
+                userId = currentUserId,
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -369,12 +382,6 @@ fun AppNavigation(
         // ==================== Admin System Graph ====================
         composable(Screen.AdminSystemDashboard.route) {
             com.example.testapp.ui.screens.admin.AdminSystemDashboardScreen(
-                onNavigateToUsersList = {
-                    navController.navigate(Screen.AdminUsersList.route)
-                },
-                onNavigateToPendingRequests = {
-                    navController.navigate(Screen.AdminPendingRequests.route)
-                },
                 onLogout = {
                     authViewModel.logout()
                 }

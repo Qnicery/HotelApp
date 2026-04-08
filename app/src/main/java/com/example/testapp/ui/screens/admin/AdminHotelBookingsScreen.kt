@@ -42,8 +42,6 @@ fun AdminHotelBookingsScreen(
     onNavigateBack: () -> Unit,
     viewModel: AdminHotelViewModel = viewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -60,29 +58,17 @@ fun AdminHotelBookingsScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            contentAlignment = Alignment.Center
         ) {
-            items(uiState.bookings) { booking ->
-                AdminBookingCard(booking = booking)
-            }
-
-            if (uiState.bookings.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 48.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Нет бронирований")
-                    }
-                }
-            }
+            Text(
+                text = "Бронирования скоро будут доступны",
+                modifier = Modifier.padding(32.dp),
+                style = MaterialTheme.typography.bodyLarge
+            )
         }
     }
 }
